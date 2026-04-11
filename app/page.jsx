@@ -1430,7 +1430,7 @@ export default function LifeResetTrackerApp() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <Target className="h-6 w-6" />
-                60-Day Life Reset Dashboard
+                Life Tracker Dashboard
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
