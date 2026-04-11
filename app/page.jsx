@@ -76,6 +76,22 @@ const getTodayKey = (date = new Date()) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
+// Returns the "effective" date key — if we're before (wakeTime - 4h), still treat as yesterday
+const getEffectiveDateKey = (wakeTimeStr = '05:30') => {
+  const now = new Date();
+  const [wakeH, wakeM] = (wakeTimeStr || '05:30').split(':').map(Number);
+  const resetMinutes = wakeH * 60 + wakeM - 240; // 4 hours before wake
+  if (resetMinutes >= 0) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    if (nowMinutes < resetMinutes) {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return getTodayKey(yesterday);
+    }
+  }
+  return getTodayKey(now);
+};
+
 const parseKey = (dateKey) => {
   const [y, m, d] = dateKey.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -957,6 +973,7 @@ export default function LifeResetTrackerApp() {
   const [now, setNow] = useState(new Date());
   const [currentDateKey, setCurrentDateKey] = useState(getTodayKey());
   const [selectedDateKey, setSelectedDateKey] = useState(getTodayKey());
+  const [archiveDateKey, setArchiveDateKey] = useState(null);
 
   useEffect(() => {
     const tick = () => {
@@ -1110,7 +1127,8 @@ export default function LifeResetTrackerApp() {
 
   useEffect(() => {
     const checkDateChange = () => {
-      const nextKey = getTodayKey();
+      const wakeTime = dataRef.current?.notifications?.alarms?.wake?.time || '05:30';
+      const nextKey = getEffectiveDateKey(wakeTime);
       setCurrentDateKey((prev) => {
         if (prev !== nextKey) {
           lastCurrentDateKeyRef.current = prev;
@@ -1160,6 +1178,13 @@ export default function LifeResetTrackerApp() {
   const showDailyCountdownCard = hasConfiguredCountdown && dailyCountdownOutcomes.length > 0;
   const scoreboardOverallProgress = calculateOverallCountdownProgress(scoreboardCountdownOutcomes);
   const dashboardOverallProgress = calculateOverallCountdownProgress(countdownOutcomes);
+
+  // Archive mode — viewing a past day
+  const isArchiveMode = archiveDateKey !== null;
+  const viewingDateKey = isArchiveMode ? archiveDateKey : currentDateKey;
+  const viewingState = isArchiveMode ? (data.daily[viewingDateKey] || {}) : todayState;
+  const viewingCompleted = data.dailyTemplate.filter((item) => viewingState[item.id]).length;
+  const viewingProgress = data.dailyTemplate.length ? Math.round((viewingCompleted / data.dailyTemplate.length) * 100) : 0;
 
   const setDailyTemplate = (updater) => {
     setData((prev) => ({ ...prev, dailyTemplate: typeof updater === 'function' ? updater(prev.dailyTemplate) : updater }));
@@ -1387,12 +1412,12 @@ export default function LifeResetTrackerApp() {
   const orderedDailySections = useMemo(() => {
     const entries = Object.entries(dailyGroups);
     return entries.sort((a, b) => {
-      const aComplete = a[1].length > 0 && a[1].every((item) => !!todayState[item.id]);
-      const bComplete = b[1].length > 0 && b[1].every((item) => !!weekState[item.id]);
+      const aComplete = a[1].length > 0 && a[1].every((item) => !!viewingState[item.id]);
+      const bComplete = b[1].length > 0 && b[1].every((item) => !!viewingState[item.id]);
       if (aComplete === bComplete) return 0;
       return aComplete ? 1 : -1;
     });
-  }, [dailyGroups, todayState, weekState]);
+  }, [dailyGroups, viewingState]);
 
   const orderedWeeklySections = useMemo(() => {
     const entries = Object.entries(weeklyGroups);
@@ -1423,7 +1448,7 @@ export default function LifeResetTrackerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8" style={isArchiveMode ? { filter: 'saturate(0.55) brightness(0.97)' } : {}}>
       <div className="mx-auto max-w-7xl space-y-6">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4 lg:grid-cols-5">
           <Card className="lg:col-span-2 rounded-3xl shadow-sm">
@@ -1432,6 +1457,12 @@ export default function LifeResetTrackerApp() {
                 <Target className="h-6 w-6" />
                 Life Tracker Dashboard
               </CardTitle>
+              {isArchiveMode && (
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">Archive — {formatLongDate(archiveDateKey)}</span>
+                  <Button size="sm" variant="outline" className="rounded-xl text-xs h-7 px-3" onClick={() => setArchiveDateKey(null)}>Exit Archive</Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
@@ -1480,9 +1511,9 @@ export default function LifeResetTrackerApp() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-3xl font-semibold">{dailyProgress}%</div>
-              <Progress value={dailyProgress} className="h-3" />
-              <p className="text-sm text-slate-600">{dailyCompleted} of {data.dailyTemplate.length} completed today</p>
+              <div className="text-3xl font-semibold">{isArchiveMode ? viewingProgress : dailyProgress}%</div>
+              <Progress value={isArchiveMode ? viewingProgress : dailyProgress} className="h-3" />
+              <p className="text-sm text-slate-600">{isArchiveMode ? viewingCompleted : dailyCompleted} of {data.dailyTemplate.length} {isArchiveMode ? 'completed that day' : 'completed today'}</p>
             </CardContent>
           </Card>
 
@@ -1553,7 +1584,13 @@ export default function LifeResetTrackerApp() {
                   onTouchEnd={handleTabTouchEnd}
                 >
                 <TabsContent value="daily" className="mt-6 space-y-6">
-                  {showDailyCountdownCard ? (
+                  {isArchiveMode && (
+                    <div className="rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-600 flex items-center justify-between gap-3">
+                      <span>Viewing archive for <strong>{formatLongDate(archiveDateKey)}</strong> — read-only</span>
+                      <Button size="sm" variant="outline" className="rounded-xl h-7 px-3 text-xs shrink-0" onClick={() => setArchiveDateKey(null)}>Exit Archive</Button>
+                    </div>
+                  )}
+                  {showDailyCountdownCard && !isArchiveMode ? (
                     <Card className={`rounded-2xl border shadow-none ${countdownStyles.card}`}>
                       <CardHeader>
                         <CardTitle className="text-base">Today&apos;s Countdown Updates</CardTitle>
@@ -1582,14 +1619,16 @@ export default function LifeResetTrackerApp() {
 
                   <motion.div layout className="space-y-6">
                     {orderedDailySections.map(([section, items]) => (
-                      <SectionCard key={section} title={section} items={items} state={todayState} onToggle={setDailyCheck} />
+                      <SectionCard key={section} title={section} items={items} state={viewingState} onToggle={isArchiveMode ? () => {} : setDailyCheck} />
                     ))}
                   </motion.div>
-                  <div className="flex gap-3">
-                    <Button onClick={resetToday} variant="outline" className="rounded-2xl">
-                      <RotateCcw className="mr-2 h-4 w-4" /> Reset Today
-                    </Button>
-                  </div>
+                  {!isArchiveMode && (
+                    <div className="flex gap-3">
+                      <Button onClick={resetToday} variant="outline" className="rounded-2xl">
+                        <RotateCcw className="mr-2 h-4 w-4" /> Reset Today
+                      </Button>
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="weekly" className="mt-6">
@@ -1807,8 +1846,15 @@ export default function LifeResetTrackerApp() {
                                 <button
                                   key={key}
                                   type="button"
-                                  onClick={() => setSelectedDateKey(key)}
-                                  className={`relative h-20 overflow-hidden rounded-2xl border p-2 text-left transition ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:border-slate-400'} ${isToday ? 'ring-2 ring-slate-300' : ''}`}
+                                  onClick={() => {
+                                    setSelectedDateKey(key);
+                                    if (key < currentDateKey) {
+                                      setArchiveDateKey(key);
+                                    } else {
+                                      setArchiveDateKey(null);
+                                    }
+                                  }}
+                                  className={`relative h-20 overflow-hidden rounded-2xl border p-2 text-left transition ${isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:border-slate-400'} ${isToday ? 'ring-2 ring-slate-300' : ''} ${key > currentDateKey ? 'opacity-30 cursor-not-allowed' : ''}`}
                                 >
                                   {inCountdownRange && !isSelected ? <div className={`absolute inset-0 ${countdownStyles.fill}`} /> : null}
                                   <div className="relative flex items-center justify-between text-xs">
