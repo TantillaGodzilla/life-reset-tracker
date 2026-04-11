@@ -1999,6 +1999,7 @@ export default function LifeResetTrackerApp() {
           </Card>
 
           <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}>
             <Card className="rounded-3xl shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
@@ -2080,7 +2081,9 @@ export default function LifeResetTrackerApp() {
                 )}
               </CardContent>
             </Card>
+            </motion.div>
 
+            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}>
             <Card className="rounded-3xl shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -2096,7 +2099,9 @@ export default function LifeResetTrackerApp() {
                 />
               </CardContent>
             </Card>
+            </motion.div>
 
+            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.25 }}>
             <Card className="rounded-3xl shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -2127,7 +2132,9 @@ export default function LifeResetTrackerApp() {
                 </div>
               </CardContent>
             </Card>
+            </motion.div>
 
+            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}>
             <Card className="rounded-3xl shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -2142,6 +2149,7 @@ export default function LifeResetTrackerApp() {
                 <p>The app is prefilled with a 60 day reset and weight outcome for faster testing.</p>
               </CardContent>
             </Card>
+            </motion.div>
           </div>
         </div>
       </div>
