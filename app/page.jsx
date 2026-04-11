@@ -863,8 +863,19 @@ export default function LifeResetTrackerApp() {
   const [isEditingTodayTodo, setIsEditingTodayTodo] = useState(false);
   const [activeTab, setActiveTab] = useState('daily');
   const touchStartXRef = useRef(null);
+  const [now, setNow] = useState(new Date());
   const [currentDateKey, setCurrentDateKey] = useState(getTodayKey());
   const [selectedDateKey, setSelectedDateKey] = useState(getTodayKey());
+
+  useEffect(() => {
+    const tick = () => {
+      const n = new Date();
+      setNow(n);
+      setCurrentDateKey(getTodayKey(n));
+    };
+    const interval = setInterval(tick, 60000);
+    return () => clearInterval(interval);
+  }, []);
   const lastCurrentDateKeyRef = useRef(getTodayKey());
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
@@ -1256,6 +1267,7 @@ export default function LifeResetTrackerApp() {
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 <Badge className="rounded-full px-3 py-1">Today: {formatLongDate(currentDateKey)}</Badge>
+                <Badge className="rounded-full px-3 py-1">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Badge>
                 <Badge className="rounded-full px-3 py-1">Wake: 5:30 AM</Badge>
                 <Badge className="rounded-full px-3 py-1">Leave: 7:15 AM</Badge>
                 <Badge className="rounded-full px-3 py-1">Sleep: 9:00 PM</Badge>
