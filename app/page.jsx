@@ -1544,7 +1544,14 @@ export default function LifeResetTrackerApp() {
                   );
                 })()}
 
-                <div onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+                  onTouchStart={handleTabTouchStart}
+                  onTouchEnd={handleTabTouchEnd}
+                >
                 <TabsContent value="daily" className="mt-6 space-y-6">
                   {showDailyCountdownCard ? (
                     <Card className={`rounded-2xl border shadow-none ${countdownStyles.card}`}>
@@ -1986,7 +1993,7 @@ export default function LifeResetTrackerApp() {
                   </CollapsibleSection>
                 </TabsContent>
 
-                </div>
+                </motion.div>
               </Tabs>
             </CardContent>
           </Card>
