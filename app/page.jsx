@@ -25,6 +25,7 @@ import {
   Target,
   Trash2,
   FolderPlus,
+  ChevronDown,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'life-reset-tracker-v11';
@@ -432,6 +433,36 @@ const SectionCard = ({ title, items, state, onToggle }) => {
         </AnimatePresence>
       </Card>
     </motion.div>
+  );
+};
+
+const CollapsibleSection = ({ title, children, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-2xl border bg-white px-5 py-3 text-left shadow-none"
+      >
+        <span className="text-sm font-semibold text-slate-800">{title}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-3 space-y-4">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -1830,40 +1861,48 @@ export default function LifeResetTrackerApp() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="editor" className="mt-6 space-y-6">
-                  <Card className="rounded-2xl border shadow-none">
-                    <CardHeader>
-                      <CardTitle className="text-base">Weekly Performance Targets</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                        {[
-                          ['calls', 'Call Target'],
-                          ['texts', 'Text Target'],
-                          ['appointments', 'Appt Target'],
-                          ['shows', 'Show Target'],
-                          ['deals', 'Deal Target'],
-                        ].map(([key, label]) => (
-                          <Card key={key} className="rounded-2xl border shadow-none">
-                            <CardContent className="space-y-2 p-4">
-                              <label className="text-sm font-medium">{label}</label>
-                              <Input value={data.targets[key]} onChange={(e) => updateTarget(key, e.target.value)} className="rounded-xl" />
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <div className="flex flex-wrap gap-3">
+                <TabsContent value="editor" className="mt-6 space-y-3">
+                  <CollapsibleSection title="Weekly Performance Targets">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                      {[
+                        ['calls', 'Call Target'],
+                        ['texts', 'Text Target'],
+                        ['appointments', 'Appt Target'],
+                        ['shows', 'Show Target'],
+                        ['deals', 'Deal Target'],
+                      ].map(([key, label]) => (
+                        <Card key={key} className="rounded-2xl border shadow-none">
+                          <CardContent className="space-y-2 p-4">
+                            <label className="text-sm font-medium">{label}</label>
+                            <Input value={data.targets[key]} onChange={(e) => updateTarget(key, e.target.value)} className="rounded-xl" />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Daily Task Editor">
                     <Button onClick={restoreDefaults} variant="outline" className="rounded-2xl">
                       <RotateCcw className="mr-2 h-4 w-4" /> Restore Default Tasks
                     </Button>
-                  </div>
-                  <BlockTaskEditor title="Daily Task Editor" tasks={data.dailyTemplate} setTasks={setDailyTemplate} suggestions={dailyBlockSuggestions} alarms={data.blockAlarms.daily} onAlarmChange={(section, field, value) => updateBlockAlarm('daily', section, field, value)} />
-                  <BlockTaskEditor title="Weekly Task Editor" tasks={data.weeklyTemplate} setTasks={setWeeklyTemplate} suggestions={weeklyBlockSuggestions} alarms={data.blockAlarms.weekly} onAlarmChange={(section, field, value) => updateBlockAlarm('weekly', section, field, value)} />
-                  <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} />
-                  <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} cardStyle={countdownStyles.card} />
-                  <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} cardStyle={countdownStyles.card} />
+                    <BlockTaskEditor title="Daily Task Editor" tasks={data.dailyTemplate} setTasks={setDailyTemplate} suggestions={dailyBlockSuggestions} alarms={data.blockAlarms.daily} onAlarmChange={(section, field, value) => updateBlockAlarm('daily', section, field, value)} />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Weekly Task Editor">
+                    <BlockTaskEditor title="Weekly Task Editor" tasks={data.weeklyTemplate} setTasks={setWeeklyTemplate} suggestions={weeklyBlockSuggestions} alarms={data.blockAlarms.weekly} onAlarmChange={(section, field, value) => updateBlockAlarm('weekly', section, field, value)} />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Weekly Routine">
+                    <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Goal Countdown">
+                    <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} cardStyle={countdownStyles.card} />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Countdown Outcomes">
+                    <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} cardStyle={countdownStyles.card} />
+                  </CollapsibleSection>
                 </TabsContent>
 
                 <TabsContent value="alerts" className="mt-6 space-y-6">
