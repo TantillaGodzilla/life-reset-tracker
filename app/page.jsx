@@ -196,6 +196,15 @@ const defaultTargets = {
   deals: '',
 };
 
+const defaultMetricLabels = {
+  calls: '',
+  texts: '',
+  appointments: '',
+  shows: '',
+  deals: '',
+  gross: '',
+};
+
 const emptyCountdown = {
   title: '',
   startDate: '',
@@ -1135,7 +1144,7 @@ export default function LifeResetTrackerApp() {
       return {
         daily: {}, weekly: {}, weeklyDayPlans: {}, reflections: {},
         dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate,
-        notes: '', metricsByDate: {}, targets: defaultTargets,
+        notes: '', metricsByDate: {}, targets: defaultTargets, metricLabels: defaultMetricLabels,
         countdown: defaultCountdown, weeklyRoutine: defaultWeeklyRoutine,
         countdownOutcomes: seededOutcomes,
         notifications: defaultNotifications, blockAlarms: { daily: {}, weekly: {} },
@@ -1147,7 +1156,7 @@ export default function LifeResetTrackerApp() {
       return {
         daily: {}, weekly: {}, weeklyDayPlans: {}, reflections: {},
         dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate,
-        notes: '', metricsByDate: {}, targets: defaultTargets,
+        notes: '', metricsByDate: {}, targets: defaultTargets, metricLabels: defaultMetricLabels,
         countdown: defaultCountdown, weeklyRoutine: defaultWeeklyRoutine,
         countdownOutcomes: seededOutcomes,
         notifications: defaultNotifications, blockAlarms: { daily: {}, weekly: {} },
@@ -1165,6 +1174,7 @@ export default function LifeResetTrackerApp() {
       notes: parsed.notes || '',
       metricsByDate: parsed.metricsByDate || {},
       targets: { ...defaultTargets, ...(parsed.targets || {}) },
+      metricLabels: { ...defaultMetricLabels, ...(parsed.metricLabels || {}) },
       countdown: { ...defaultCountdown, ...(parsed.countdown || {}) },
       weeklyRoutine: { ...defaultWeeklyRoutine, ...(parsed.weeklyRoutine || {}) },
       countdownOutcomes: Array.isArray(parsed.countdownOutcomes) ? parsed.countdownOutcomes.map(normalizeOutcome) : seededOutcomes,
@@ -1323,6 +1333,10 @@ export default function LifeResetTrackerApp() {
 
   const updateTarget = (field, value) => {
     setData((prev) => ({ ...prev, targets: { ...prev.targets, [field]: value } }));
+  };
+
+  const updateMetricLabel = (field, value) => {
+    setData((prev) => ({ ...prev, metricLabels: { ...prev.metricLabels, [field]: value } }));
   };
 
   const updateReflection = (field, value) => {
@@ -1752,22 +1766,17 @@ export default function LifeResetTrackerApp() {
                 </TabsContent>
 
                 <TabsContent value="scoreboard" className="mt-6 space-y-6">
+                  {Object.keys(defaultMetricLabels).some(k => data.metricLabels[k]) && (
                   <Card className="rounded-2xl border shadow-none">
                     <CardHeader>
                       <CardTitle className="text-base">Weekly Performance</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                        {[
-                          ['calls', 'Call Target'],
-                          ['texts', 'Text Target'],
-                          ['appointments', 'Appt Target'],
-                          ['shows', 'Show Target'],
-                          ['deals', 'Deal Target'],
-                        ].map(([key, label]) => (
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {Object.keys(defaultTargets).filter(k => data.metricLabels[k]).map((key) => (
                           <Card key={key} className="rounded-2xl border shadow-none">
                             <CardContent className="space-y-2 p-4">
-                              <label className="text-sm font-medium">{label}</label>
+                              <label className="text-sm font-medium">{data.metricLabels[key]} Target</label>
                               <Input value={data.targets[key]} onChange={(e) => updateTarget(key, e.target.value)} className="rounded-xl" />
                             </CardContent>
                           </Card>
@@ -1775,6 +1784,7 @@ export default function LifeResetTrackerApp() {
                       </div>
                     </CardContent>
                   </Card>
+                  )}
 
                   {hasConfiguredCountdown || countdownOutcomes.length ? (
                     <Card className={`rounded-2xl border shadow-none ${countdownStyles.card}`}>
@@ -1834,23 +1844,24 @@ export default function LifeResetTrackerApp() {
                     </Card>
                   )}
 
+                  {Object.keys(defaultMetricLabels).some(k => data.metricLabels[k]) ? (
                   <div className="grid gap-4 md:grid-cols-2">
-                    {[
-                      ['calls', 'Calls'],
-                      ['texts', 'Texts'],
-                      ['appointments', 'Appointments'],
-                      ['shows', 'Shows'],
-                      ['deals', 'Deals'],
-                      ['gross', 'Gross ($)'],
-                    ].map(([key, label]) => (
+                    {Object.keys(defaultMetricLabels).filter(k => data.metricLabels[k]).map((key) => (
                       <Card key={key} className="rounded-2xl border shadow-none">
                         <CardContent className="space-y-2 p-4">
-                          <label className="text-sm font-medium">{label}</label>
+                          <label className="text-sm font-medium">{data.metricLabels[key]}</label>
                           <Input value={todayMetrics[key]} onChange={(e) => updateMetric(key, e.target.value)} className="rounded-xl" />
                         </CardContent>
                       </Card>
                     ))}
                   </div>
+                  ) : (
+                  <Card className="rounded-2xl border shadow-none">
+                    <CardContent className="p-5 text-sm text-slate-500">
+                      No performance metrics set up yet. Name them in the Editor tab under "Weekly Performance".
+                    </CardContent>
+                  </Card>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="calendar" className="mt-6 space-y-6">
@@ -1944,21 +1955,16 @@ export default function LifeResetTrackerApp() {
                         <p className="mt-2 text-sm text-slate-500">{selectedCompleted} of {data.dailyTemplate.length} tasks completed</p>
                       </div>
 
+                      {Object.keys(defaultMetricLabels).some(k => data.metricLabels[k]) && (
                       <div className="grid gap-4 md:grid-cols-2">
-                        {[
-                          ['calls', 'Calls'],
-                          ['texts', 'Texts'],
-                          ['appointments', 'Appointments'],
-                          ['shows', 'Shows'],
-                          ['deals', 'Deals'],
-                          ['gross', 'Gross ($)'],
-                        ].map(([key, label]) => (
+                        {Object.keys(defaultMetricLabels).filter(k => data.metricLabels[k]).map((key) => (
                           <div key={key} className="rounded-2xl border p-4">
-                            <div className="text-xs text-slate-500">{label}</div>
+                            <div className="text-xs text-slate-500">{data.metricLabels[key]}</div>
                             <div className="mt-1 text-lg font-semibold">{selectedDateMetrics[key] || '—'}</div>
                           </div>
                         ))}
                       </div>
+                      )}
 
                       <div className="space-y-4">
                         <div>
@@ -1994,19 +2000,31 @@ export default function LifeResetTrackerApp() {
                 </TabsContent>
 
                 <TabsContent value="editor" className="mt-6 space-y-3">
-                  <CollapsibleSection title="Weekly Performance Targets">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                      {[
-                        ['calls', 'Call Target'],
-                        ['texts', 'Text Target'],
-                        ['appointments', 'Appt Target'],
-                        ['shows', 'Show Target'],
-                        ['deals', 'Deal Target'],
-                      ].map(([key, label]) => (
+                  <CollapsibleSection title="Weekly Performance">
+                    <p className="text-xs text-slate-500">Name each metric you want to track (leave blank to hide it). Then set your weekly targets.</p>
+                    <div className="space-y-3">
+                      {Object.keys(defaultMetricLabels).map((key) => (
                         <Card key={key} className="rounded-2xl border shadow-none">
-                          <CardContent className="space-y-2 p-4">
-                            <label className="text-sm font-medium">{label}</label>
-                            <Input value={data.targets[key]} onChange={(e) => updateTarget(key, e.target.value)} className="rounded-xl" />
+                          <CardContent className="grid grid-cols-2 gap-3 p-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-slate-500">Metric name</label>
+                              <Input
+                                value={data.metricLabels[key]}
+                                onChange={(e) => updateMetricLabel(key, e.target.value)}
+                                placeholder="e.g. Calls, Revenue…"
+                                className="rounded-xl"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-slate-500">Weekly target</label>
+                              <Input
+                                value={data.targets[key] || ''}
+                                onChange={(e) => updateTarget(key, e.target.value)}
+                                placeholder="—"
+                                disabled={!data.metricLabels[key]}
+                                className="rounded-xl disabled:opacity-40"
+                              />
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
