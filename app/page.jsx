@@ -2008,6 +2008,21 @@ export default function LifeResetTrackerApp() {
                 </TabsContent>
 
                 <TabsContent value="editor" className="mt-6 space-y-3">
+                  <CollapsibleSection title="Daily Task Editor">
+                    <Button onClick={restoreDefaults} variant="outline" className="rounded-2xl">
+                      <RotateCcw className="mr-2 h-4 w-4" /> Restore Default Tasks
+                    </Button>
+                    <BlockTaskEditor title="Daily Task Editor" tasks={data.dailyTemplate} setTasks={setDailyTemplate} suggestions={dailyBlockSuggestions} alarms={data.blockAlarms.daily} onAlarmChange={(section, field, value) => updateBlockAlarm('daily', section, field, value)} />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Weekly Task Editor">
+                    <BlockTaskEditor title="Weekly Task Editor" tasks={data.weeklyTemplate} setTasks={setWeeklyTemplate} suggestions={weeklyBlockSuggestions} alarms={data.blockAlarms.weekly} onAlarmChange={(section, field, value) => updateBlockAlarm('weekly', section, field, value)} />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Weekly Routine">
+                    <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} todayDayName={parseKey(currentDateKey).toLocaleDateString([], { weekday: 'long' })} />
+                  </CollapsibleSection>
+
                   <CollapsibleSection title="Weekly Performance">
                     <p className="text-xs text-slate-500">Name each metric you want to track (leave blank to hide it). Then set your weekly targets.</p>
                     <div className="space-y-3">
@@ -2037,21 +2052,6 @@ export default function LifeResetTrackerApp() {
                         </Card>
                       ))}
                     </div>
-                  </CollapsibleSection>
-
-                  <CollapsibleSection title="Daily Task Editor">
-                    <Button onClick={restoreDefaults} variant="outline" className="rounded-2xl">
-                      <RotateCcw className="mr-2 h-4 w-4" /> Restore Default Tasks
-                    </Button>
-                    <BlockTaskEditor title="Daily Task Editor" tasks={data.dailyTemplate} setTasks={setDailyTemplate} suggestions={dailyBlockSuggestions} alarms={data.blockAlarms.daily} onAlarmChange={(section, field, value) => updateBlockAlarm('daily', section, field, value)} />
-                  </CollapsibleSection>
-
-                  <CollapsibleSection title="Weekly Task Editor">
-                    <BlockTaskEditor title="Weekly Task Editor" tasks={data.weeklyTemplate} setTasks={setWeeklyTemplate} suggestions={weeklyBlockSuggestions} alarms={data.blockAlarms.weekly} onAlarmChange={(section, field, value) => updateBlockAlarm('weekly', section, field, value)} />
-                  </CollapsibleSection>
-
-                  <CollapsibleSection title="Weekly Routine">
-                    <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} todayDayName={parseKey(currentDateKey).toLocaleDateString([], { weekday: 'long' })} />
                   </CollapsibleSection>
 
                   <CollapsibleSection title="Goal Countdown & Outcomes">
