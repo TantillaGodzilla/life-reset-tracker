@@ -435,7 +435,7 @@ const SectionCard = ({ title, items, state, onToggle }) => {
   );
 };
 
-const BlockTaskEditor = ({ title, tasks, setTasks, suggestions }) => {
+const BlockTaskEditor = ({ title, tasks, setTasks, suggestions, alarms = {}, onAlarmChange }) => {
   const groupedTasks = useMemo(() => grouped(tasks), [tasks]);
   const sectionNames = Object.keys(groupedTasks);
   const [newBlockName, setNewBlockName] = useState('');
@@ -504,7 +504,16 @@ const BlockTaskEditor = ({ title, tasks, setTasks, suggestions }) => {
           {sectionNames.map((section) => (
             <Card key={section} className="rounded-2xl border shadow-none">
               <CardHeader>
-                <CardTitle className="text-base">{section}</CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">{section}</CardTitle>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label className="text-xs text-slate-500">Alarm</label>
+                    <Switch checked={!!(alarms[section]?.enabled)} onCheckedChange={(v) => onAlarmChange(section, 'enabled', v)} />
+                  </div>
+                </div>
+                {alarms[section]?.enabled && (
+                  <Input type="time" value={alarms[section]?.time || '08:00'} onChange={(e) => onAlarmChange(section, 'time', e.target.value)} className="mt-2 rounded-xl w-36" />
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 {groupedTasks[section].map((task) => (
@@ -862,7 +871,53 @@ const OutcomeEditor = ({ outcomes, setOutcomes }) => {
   );
 };
 
-const TAB_ORDER = ['daily', 'weekly', 'scoreboard', 'calendar', 'editor'];
+const TAB_ORDER = ['daily', 'weekly', 'scoreboard', 'calendar', 'editor', 'alerts'];
+
+const defaultNotifications = {
+  soundEnabled: true,
+  soundType: 'chime',
+  alarms: {
+    wake:  { enabled: false, time: '05:30', label: 'Wake Alarm' },
+    leave: { enabled: false, time: '07:15', label: 'Leave for Work' },
+    sleep: { enabled: false, time: '21:00', label: 'Sleep Reminder' },
+  },
+};
+
+const playSound = (type) => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (type === 'chime') {
+      [880, 1100, 1320].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.18);
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.18);
+        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + i * 0.18 + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.5);
+        osc.start(ctx.currentTime + i * 0.18);
+        osc.stop(ctx.currentTime + i * 0.18 + 0.5);
+      });
+    } else {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(660, ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+    }
+  } catch (e) { /* audio not available */ }
+};
+
+const fireAlarm = (label, body, soundEnabled, soundType) => {
+  if (soundEnabled && soundType !== 'silent') playSound(soundType);
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    new Notification(label, { body, icon: '/favicon.ico' });
+  }
+};
 
 export default function LifeResetTrackerApp() {
   const [isEditingTodayTodo, setIsEditingTodayTodo] = useState(false);
@@ -881,6 +936,72 @@ export default function LifeResetTrackerApp() {
     const interval = setInterval(tick, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; }, [data]);
+
+  useEffect(() => {
+    const firedRef = new Set();
+    const check = () => {
+      const n = new Date();
+      const hhmm = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+      const key = `${getTodayKey(n)}-${hhmm}`;
+      if (firedRef.has(key)) return;
+      const { notifications, blockAlarms } = dataRef.current;
+      const { soundEnabled, soundType, alarms } = notifications;
+      Object.entries(alarms).forEach(([, alarm]) => {
+        if (alarm.enabled && alarm.time === hhmm) {
+          firedRef.add(`${key}-${alarm.label}`);
+          fireAlarm(alarm.label, 'Life Reset Tracker', soundEnabled, soundType);
+        }
+      });
+      ['daily', 'weekly'].forEach((tmpl) => {
+        Object.entries(blockAlarms[tmpl] || {}).forEach(([section, cfg]) => {
+          if (cfg.enabled && cfg.time === hhmm) {
+            const bkey = `${key}-${tmpl}-${section}`;
+            if (!firedRef.has(bkey)) {
+              firedRef.add(bkey);
+              fireAlarm(section, `${tmpl === 'daily' ? 'Daily' : 'Weekly'} block reminder`, soundEnabled, soundType);
+            }
+          }
+        });
+      });
+    };
+    const interval = setInterval(check, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateNotification = (path, value) => {
+    setData((prev) => {
+      const notif = { ...prev.notifications };
+      if (path.startsWith('alarms.')) {
+        const [, key, field] = path.split('.');
+        notif.alarms = { ...notif.alarms, [key]: { ...notif.alarms[key], [field]: value } };
+      } else {
+        notif[path] = value;
+      }
+      return { ...prev, notifications: notif };
+    });
+  };
+
+  const updateBlockAlarm = (tmpl, section, field, value) => {
+    setData((prev) => ({
+      ...prev,
+      blockAlarms: {
+        ...prev.blockAlarms,
+        [tmpl]: {
+          ...prev.blockAlarms[tmpl],
+          [section]: { enabled: false, time: '08:00', ...(prev.blockAlarms[tmpl]?.[section] || {}), [field]: value },
+        },
+      },
+    }));
+  };
+
+  const requestNotificationPermission = async () => {
+    if (typeof Notification === 'undefined') return;
+    await Notification.requestPermission();
+    setData((prev) => ({ ...prev })); // force re-render to show new status
+  };
   const lastCurrentDateKeyRef = useRef(getTodayKey());
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
@@ -890,36 +1011,24 @@ export default function LifeResetTrackerApp() {
   const [data, setData] = useState(() => {
     if (typeof window === 'undefined') {
       return {
-        daily: {},
-        weekly: {},
-        weeklyDayPlans: {},
-        reflections: {},
-        dailyTemplate: defaultDailyTemplate,
-        weeklyTemplate: defaultWeeklyTemplate,
-        notes: '',
-        metricsByDate: {},
-        targets: defaultTargets,
-        countdown: defaultCountdown,
-        weeklyRoutine: defaultWeeklyRoutine,
+        daily: {}, weekly: {}, weeklyDayPlans: {}, reflections: {},
+        dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate,
+        notes: '', metricsByDate: {}, targets: defaultTargets,
+        countdown: defaultCountdown, weeklyRoutine: defaultWeeklyRoutine,
         countdownOutcomes: seededOutcomes,
+        notifications: defaultNotifications, blockAlarms: { daily: {}, weekly: {} },
       };
     }
 
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (!saved) {
       return {
-        daily: {},
-        weekly: {},
-        weeklyDayPlans: {},
-        reflections: {},
-        dailyTemplate: defaultDailyTemplate,
-        weeklyTemplate: defaultWeeklyTemplate,
-        notes: '',
-        metricsByDate: {},
-        targets: defaultTargets,
-        countdown: defaultCountdown,
-        weeklyRoutine: defaultWeeklyRoutine,
+        daily: {}, weekly: {}, weeklyDayPlans: {}, reflections: {},
+        dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate,
+        notes: '', metricsByDate: {}, targets: defaultTargets,
+        countdown: defaultCountdown, weeklyRoutine: defaultWeeklyRoutine,
         countdownOutcomes: seededOutcomes,
+        notifications: defaultNotifications, blockAlarms: { daily: {}, weekly: {} },
       };
     }
 
@@ -937,6 +1046,8 @@ export default function LifeResetTrackerApp() {
       countdown: { ...defaultCountdown, ...(parsed.countdown || {}) },
       weeklyRoutine: { ...defaultWeeklyRoutine, ...(parsed.weeklyRoutine || {}) },
       countdownOutcomes: Array.isArray(parsed.countdownOutcomes) ? parsed.countdownOutcomes.map(normalizeOutcome) : seededOutcomes,
+      notifications: { ...defaultNotifications, ...(parsed.notifications || {}), alarms: { ...defaultNotifications.alarms, ...(parsed.notifications?.alarms || {}) } },
+      blockAlarms: { daily: {}, weekly: {}, ...(parsed.blockAlarms || {}) },
     };
   });
 
@@ -1343,18 +1454,19 @@ export default function LifeResetTrackerApp() {
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="hidden md:block overflow-x-auto pb-0.5">
-                  <TabsList className="grid min-w-[420px] w-full grid-cols-5 rounded-2xl">
+                  <TabsList className="grid min-w-[500px] w-full grid-cols-6 rounded-2xl">
                     <TabsTrigger value="daily">Daily</TabsTrigger>
                     <TabsTrigger value="weekly">Weekly</TabsTrigger>
                     <TabsTrigger value="scoreboard">Scoreboard</TabsTrigger>
                     <TabsTrigger value="calendar">Calendar</TabsTrigger>
                     <TabsTrigger value="editor">Editor</TabsTrigger>
+                    <TabsTrigger value="alerts">Alerts</TabsTrigger>
                   </TabsList>
                 </div>
 
                 {/* Mobile carousel tab bar */}
                 {(() => {
-                  const TAB_LABELS = { daily: 'Daily', weekly: 'Weekly', scoreboard: 'Scoreboard', calendar: 'Calendar', editor: 'Editor' };
+                  const TAB_LABELS = { daily: 'Daily', weekly: 'Weekly', scoreboard: 'Scoreboard', calendar: 'Calendar', editor: 'Editor', alerts: 'Alerts' };
                   const n = TAB_ORDER.length;
                   const idx = TAB_ORDER.indexOf(activeTab);
                   const getTab = (offset) => TAB_ORDER[((idx + offset) % n + n) % n];
@@ -1723,12 +1835,75 @@ export default function LifeResetTrackerApp() {
                       <RotateCcw className="mr-2 h-4 w-4" /> Restore Default Tasks
                     </Button>
                   </div>
-                  <BlockTaskEditor title="Daily Task Editor" tasks={data.dailyTemplate} setTasks={setDailyTemplate} suggestions={dailyBlockSuggestions} />
-                  <BlockTaskEditor title="Weekly Task Editor" tasks={data.weeklyTemplate} setTasks={setWeeklyTemplate} suggestions={weeklyBlockSuggestions} />
+                  <BlockTaskEditor title="Daily Task Editor" tasks={data.dailyTemplate} setTasks={setDailyTemplate} suggestions={dailyBlockSuggestions} alarms={data.blockAlarms.daily} onAlarmChange={(section, field, value) => updateBlockAlarm('daily', section, field, value)} />
+                  <BlockTaskEditor title="Weekly Task Editor" tasks={data.weeklyTemplate} setTasks={setWeeklyTemplate} suggestions={weeklyBlockSuggestions} alarms={data.blockAlarms.weekly} onAlarmChange={(section, field, value) => updateBlockAlarm('weekly', section, field, value)} />
                   <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} />
                   <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} />
                   <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} />
                 </TabsContent>
+
+                <TabsContent value="alerts" className="mt-6 space-y-6">
+                  {/* Permission */}
+                  <Card className="rounded-2xl border shadow-none">
+                    <CardHeader><CardTitle className="text-base">Browser Notifications</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between rounded-2xl border p-4">
+                        <div>
+                          <div className="text-sm font-medium">Permission</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {typeof Notification === 'undefined' ? 'Not supported' : Notification.permission === 'granted' ? '✓ Granted' : Notification.permission === 'denied' ? '✗ Denied — enable in browser settings' : 'Not requested yet'}
+                          </div>
+                        </div>
+                        {typeof Notification !== 'undefined' && Notification.permission !== 'granted' && (
+                          <Button onClick={requestNotificationPermission} className="rounded-xl shrink-0">Enable</Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Sound */}
+                  <Card className="rounded-2xl border shadow-none">
+                    <CardHeader><CardTitle className="text-base">Sound</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between rounded-2xl border p-4">
+                        <div className="text-sm font-medium">Sound enabled</div>
+                        <Switch checked={data.notifications.soundEnabled} onCheckedChange={(v) => updateNotification('soundEnabled', v)} />
+                      </div>
+                      {data.notifications.soundEnabled && (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Sound type</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {['chime', 'beep', 'silent'].map((t) => (
+                              <Button key={t} type="button" variant={data.notifications.soundType === t ? 'default' : 'outline'} onClick={() => updateNotification('soundType', t)} className="rounded-xl capitalize">{t}</Button>
+                            ))}
+                          </div>
+                          <Button variant="outline" className="rounded-xl w-full mt-2" onClick={() => playSound(data.notifications.soundType)}>
+                            Test Sound
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Alarms */}
+                  <Card className="rounded-2xl border shadow-none">
+                    <CardHeader><CardTitle className="text-base">Alarms</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      {Object.entries(data.notifications.alarms).map(([key, alarm]) => (
+                        <div key={key} className="rounded-2xl border p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-medium">{alarm.label}</div>
+                            <Switch checked={alarm.enabled} onCheckedChange={(v) => updateNotification(`alarms.${key}.enabled`, v)} />
+                          </div>
+                          {alarm.enabled && (
+                            <Input type="time" value={alarm.time} onChange={(e) => updateNotification(`alarms.${key}.time`, e.target.value)} className="rounded-xl" />
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
                 </div>
               </Tabs>
             </CardContent>
