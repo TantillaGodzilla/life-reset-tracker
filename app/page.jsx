@@ -377,26 +377,38 @@ try {
 }
 
 const SectionCard = ({ title, items, state, onToggle }) => {
+  const [reopened, setReopened] = useState(false);
   const completedCount = items.filter((item) => state[item.id]).length;
   const progress = items.length ? Math.round((completedCount / items.length) * 100) : 0;
   const isComplete = items.length > 0 && completedCount === items.length;
+  const showContent = !isComplete || reopened;
+
+  useEffect(() => {
+    if (!isComplete) setReopened(false);
+  }, [isComplete]);
 
   return (
     <motion.div layout transition={{ type: 'spring', stiffness: 120, damping: 20 }}>
       <Card className={`rounded-2xl border shadow-none transition-colors ${isComplete ? 'border-emerald-300 bg-emerald-50' : ''}`}>
-        <CardHeader>
+        <CardHeader
+          className={isComplete ? 'cursor-pointer select-none' : ''}
+          onDoubleClick={() => isComplete && setReopened((prev) => !prev)}
+        >
           <div className="flex items-center justify-between gap-3">
             <CardTitle className={`text-base ${isComplete ? 'text-emerald-700' : ''}`}>{title}</CardTitle>
             <Badge className={`rounded-full px-3 py-1 ${isComplete ? 'bg-emerald-600 text-white hover:bg-emerald-600' : ''}`}>
               {isComplete ? 'Completed 100%' : `${progress}%`}
             </Badge>
           </div>
+          {isComplete && (
+            <p className="mt-0.5 text-xs text-emerald-600">Double-tap to {reopened ? 'collapse' : 'reopen tasks'}</p>
+          )}
         </CardHeader>
         <AnimatePresence initial={false}>
-          {!isComplete && (
+          {showContent && (
             <motion.div
               key="content"
-              initial={{ height: 'auto', opacity: 1 }}
+              initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25 }}
