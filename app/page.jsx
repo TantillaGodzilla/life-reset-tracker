@@ -1324,7 +1324,7 @@ export default function LifeResetTrackerApp() {
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="overflow-x-auto pb-0.5">
+                <div className="hidden md:block overflow-x-auto pb-0.5">
                   <TabsList className="grid min-w-[420px] w-full grid-cols-5 rounded-2xl">
                     <TabsTrigger value="daily">Daily</TabsTrigger>
                     <TabsTrigger value="weekly">Weekly</TabsTrigger>
@@ -1334,14 +1334,29 @@ export default function LifeResetTrackerApp() {
                   </TabsList>
                 </div>
 
-                <div className="mt-3 flex justify-center gap-1.5 md:hidden">
-                  {TAB_ORDER.map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`h-1.5 rounded-full transition-all ${activeTab === tab ? 'w-5 bg-slate-800' : 'w-1.5 bg-slate-300'}`}
-                    />
-                  ))}
+                {/* Mobile tab bar */}
+                <div className="md:hidden flex items-center justify-between px-2 py-1">
+                  {(() => {
+                    const idx = TAB_ORDER.indexOf(activeTab);
+                    const labels = { daily: 'Daily', weekly: 'Weekly', scoreboard: 'Scoreboard', calendar: 'Calendar', editor: 'Editor' };
+                    const prev2 = TAB_ORDER[idx - 2];
+                    const prev1 = TAB_ORDER[idx - 1];
+                    const next1 = TAB_ORDER[idx + 1];
+                    const next2 = TAB_ORDER[idx + 2];
+                    return (
+                      <>
+                        <div className="flex items-center gap-2">
+                          {prev2 && <button onClick={() => setActiveTab(prev2)} className="text-xs text-slate-300 transition-all">{labels[prev2]}</button>}
+                          {prev1 && <button onClick={() => setActiveTab(prev1)} className="text-sm text-slate-400 transition-all">{labels[prev1]}</button>}
+                        </div>
+                        <span className="text-base font-semibold text-slate-900">{labels[activeTab]}</span>
+                        <div className="flex items-center gap-2">
+                          {next1 && <button onClick={() => setActiveTab(next1)} className="text-sm text-slate-400 transition-all">{labels[next1]}</button>}
+                          {next2 && <button onClick={() => setActiveTab(next2)} className="text-xs text-slate-300 transition-all">{labels[next2]}</button>}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
