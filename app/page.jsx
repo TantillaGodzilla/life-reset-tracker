@@ -1896,11 +1896,8 @@ export default function LifeResetTrackerApp() {
                     <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} />
                   </CollapsibleSection>
 
-                  <CollapsibleSection title="Goal Countdown">
+                  <CollapsibleSection title="Goal Countdown & Outcomes">
                     <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} cardStyle={countdownStyles.card} />
-                  </CollapsibleSection>
-
-                  <CollapsibleSection title="Countdown Outcomes">
                     <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} cardStyle={countdownStyles.card} />
                   </CollapsibleSection>
                 </TabsContent>
