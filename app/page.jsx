@@ -88,6 +88,11 @@ const getWeekKey = (date = new Date()) => {
   return `${d.getFullYear()}-W${week}`;
 };
 
+const formatCountdownDate = (dateKey) => {
+  const d = parseKey(dateKey);
+  return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
+};
+
 const formatLongDate = (dateKey) => {
   const date = parseKey(dateKey);
   return date.toLocaleDateString([], {
@@ -1287,8 +1292,8 @@ export default function LifeResetTrackerApp() {
                 <div className="text-3xl font-semibold">Day {countdownStats.dayNumber}</div>
                 <p className="text-sm text-slate-600">day {countdownStats.dayNumber} of {countdownStats.totalDays} days</p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge className={`rounded-full px-3 py-1 ${countdownStyles.badge}`}>{countdown.startDate}</Badge>
-                  <Badge className={`rounded-full px-3 py-1 ${countdownStyles.badge}`}>{countdown.endDate}</Badge>
+                  <Badge className={`rounded-full px-3 py-1 ${countdownStyles.badge}`}>{formatCountdownDate(countdown.startDate)}</Badge>
+                  <Badge className={`rounded-full px-3 py-1 ${countdownStyles.badge}`}>{formatCountdownDate(countdown.endDate)}</Badge>
                 </div>
                 {countdownOutcomes.length ? (
                   <div className="space-y-2">
