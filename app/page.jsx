@@ -942,82 +942,144 @@ const fireAlarm = (label, body, soundEnabled, soundType) => {
   }
 };
 
-const TUTORIAL_STEPS = [
+const SPOTLIGHT_STEPS = [
   {
-    icon: '👋',
-    title: 'Welcome to Life Tracker',
-    body: 'This app helps you build daily habits, track weekly goals, and measure progress toward a personal reset. Everything saves automatically to your device.',
+    tab: null,
+    elementId: 'tour-header',
+    title: 'Life Tracker Dashboard',
+    body: "Your home base — today's date, time, and active alarms at a glance. Everything saves automatically to your device.",
   },
   {
-    icon: '✅',
+    tab: null,
+    elementId: 'tour-progress-cards',
+    title: 'Progress at a Glance',
+    body: 'Daily and weekly completion update in real time as you check off tasks. Your momentum score lives here too.',
+  },
+  {
+    tab: null,
+    elementId: 'tour-tab-bar',
+    title: 'Navigate by Swiping',
+    body: 'Swipe left or right anywhere to switch tabs — or tap a name directly. Six sections keep everything organized.',
+  },
+  {
+    tab: 'daily',
+    elementId: 'tour-tab-content',
     title: 'Daily Tasks',
-    body: 'Check off tasks as you go. Sections turn green when complete and collapse out of the way. Double-tap a completed section to reopen it.',
+    body: 'Check tasks off as you go. Sections collapse when fully complete — double-tap a completed section to reopen it.',
   },
   {
-    icon: '👆',
-    title: 'Swipe to Navigate',
-    body: 'On mobile, swipe left or right anywhere on the screen to switch tabs — Daily, Weekly, Scoreboard, Calendar, Editor, and Alerts.',
-  },
-  {
-    icon: '📅',
+    tab: 'calendar',
+    elementId: 'tour-tab-content',
     title: 'Calendar & Archive',
-    body: 'The Calendar tab tracks your daily progress. Tap any past day to enter Archive mode — the whole dashboard shows that day read-only with a grey tint.',
+    body: 'Every day is saved here. Tap any past day to enter Archive mode and review exactly what you completed.',
   },
   {
-    icon: '🎯',
-    title: 'Goal Countdown',
-    body: 'Set a personal goal with a start and end date in the Editor tab under "Goal Countdown & Outcomes." Track measurable outcomes and watch your progress build.',
-  },
-  {
-    icon: '🔔',
+    tab: 'alerts',
+    elementId: 'tour-tab-content',
     title: 'Alerts & Alarms',
-    body: 'Go to the Alerts tab to set wake, sleep, and custom reminders with sound notifications. Your wake time also controls when each day resets.',
+    body: 'Set wake, sleep, and custom alarms with sound. Your wake time also controls when each new day begins.',
   },
   {
-    icon: '🚀',
-    title: "You're all set",
-    body: 'Customize your daily and weekly tasks in the Editor tab. Add your goal countdown, set your alarms, and start building momentum.',
+    tab: 'editor',
+    elementId: 'tour-tab-content',
+    title: 'Editor — Make It Yours',
+    body: 'Customize your tasks, weekly routine, performance metrics, and set a personal goal countdown from here.',
   },
 ];
 
-const TutorialModal = ({ onClose }) => {
+const SpotlightTour = ({ onClose, setActiveTab }) => {
   const [step, setStep] = useState(0);
-  const current = TUTORIAL_STEPS[step];
-  const isLast = step === TUTORIAL_STEPS.length - 1;
-  const isFirst = step === 0;
+  const [rect, setRect] = useState(null);
+  const current = SPOTLIGHT_STEPS[step];
+  const isLast = step === SPOTLIGHT_STEPS.length - 1;
+  const PAD = 12;
+
+  useEffect(() => {
+    const s = SPOTLIGHT_STEPS[step];
+    if (s.tab) setActiveTab(s.tab);
+    const delay = s.tab ? 420 : 80;
+    const t = setTimeout(() => {
+      const el = document.getElementById(s.elementId);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => {
+        const r = el.getBoundingClientRect();
+        setRect({ left: r.left, top: r.top, width: r.width, height: r.height });
+      }, 320);
+    }, delay);
+    return () => clearTimeout(t);
+  }, [step, setActiveTab]);
+
+  const goNext = () => { if (isLast) { onClose(); return; } setRect(null); setStep(s => s + 1); };
+  const goBack = () => { setRect(null); setStep(s => s - 1); };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-      <motion.div
-        key={step}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl space-y-5"
-      >
-        <div className="text-4xl text-center">{current.icon}</div>
-        <div className="space-y-2 text-center">
-          <h2 className="text-lg font-semibold text-slate-900">{current.title}</h2>
-          <p className="text-sm text-slate-600 leading-relaxed">{current.body}</p>
-        </div>
-        <div className="flex justify-center gap-1.5">
-          {TUTORIAL_STEPS.map((_, i) => (
-            <div key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-5 bg-slate-800' : 'w-1.5 bg-slate-200'}`} />
-          ))}
-        </div>
-        <div className="flex gap-2">
-          {!isFirst && (
-            <Button variant="outline" className="flex-1 rounded-2xl" onClick={() => setStep(s => s - 1)}>Back</Button>
-          )}
-          {isFirst && (
-            <Button variant="outline" className="flex-1 rounded-2xl text-slate-400" onClick={onClose}>Skip</Button>
-          )}
-          <Button className="flex-1 rounded-2xl" onClick={() => isLast ? onClose() : setStep(s => s + 1)}>
-            {isLast ? 'Get Started' : 'Next'}
-          </Button>
-        </div>
-      </motion.div>
-    </div>
+    <>
+      <style>{`
+        @keyframes tour-pulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+          50% { opacity: 0.85; box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+        }
+        .tour-ring { animation: tour-pulse 2s ease-in-out infinite; }
+      `}</style>
+
+      {/* Dark overlay with SVG cutout */}
+      <svg style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', zIndex: 49, pointerEvents: 'none' }}>
+        {rect ? (
+          <>
+            <defs>
+              <mask id="tour-cutout">
+                <rect width="100%" height="100%" fill="white" />
+                <rect x={rect.left - PAD} y={rect.top - PAD} width={rect.width + PAD * 2} height={rect.height + PAD * 2} rx="16" fill="black" />
+              </mask>
+            </defs>
+            <rect width="100%" height="100%" fill="rgba(0,0,0,0.68)" mask="url(#tour-cutout)" />
+          </>
+        ) : (
+          <rect width="100%" height="100%" fill="rgba(0,0,0,0.68)" />
+        )}
+      </svg>
+
+      {/* Pulsing ring around highlighted element */}
+      {rect && (
+        <div className="tour-ring" style={{
+          position: 'fixed',
+          left: rect.left - PAD, top: rect.top - PAD,
+          width: rect.width + PAD * 2, height: rect.height + PAD * 2,
+          borderRadius: 16, border: '2px solid rgba(255,255,255,0.9)',
+          zIndex: 50, pointerEvents: 'none',
+        }} />
+      )}
+
+      {/* Tooltip anchored to bottom */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51, padding: '0 16px 28px' }}>
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          className="mx-auto max-w-sm rounded-3xl bg-white p-5 shadow-2xl space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-400">{step + 1} / {SPOTLIGHT_STEPS.length}</span>
+            <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">Skip tour</button>
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-slate-900">{current.title}</h2>
+            <p className="text-sm text-slate-600 leading-relaxed">{current.body}</p>
+          </div>
+          <div className="flex justify-center gap-1.5">
+            {SPOTLIGHT_STEPS.map((_, i) => (
+              <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? 'w-5 bg-slate-800' : 'w-1.5 bg-slate-200'}`} />
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {step > 0 && <Button variant="outline" className="flex-1 rounded-2xl" onClick={goBack}>Back</Button>}
+            <Button className="flex-1 rounded-2xl" onClick={goNext}>{isLast ? 'Get Started' : 'Next'}</Button>
+          </div>
+        </motion.div>
+      </div>
+    </>
   );
 };
 
@@ -1522,11 +1584,11 @@ export default function LifeResetTrackerApp() {
 
   return (
     <>
-    {showTutorial && <TutorialModal onClose={closeTutorial} />}
+    {showTutorial && <SpotlightTour onClose={closeTutorial} setActiveTab={setActiveTab} />}
     <div className="min-h-screen bg-slate-50 p-4 md:p-8" style={isArchiveMode ? { filter: 'saturate(0.55) brightness(0.97)' } : {}}>
       <div className="mx-auto max-w-7xl space-y-6">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4 lg:grid-cols-5">
-          <Card className="lg:col-span-2 rounded-3xl shadow-sm">
+        <motion.div id="tour-progress-cards" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4 lg:grid-cols-5">
+          <Card id="tour-header" className="lg:col-span-2 rounded-3xl shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <Target className="h-6 w-6" />
@@ -1607,7 +1669,7 @@ export default function LifeResetTrackerApp() {
         </motion.div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="rounded-3xl shadow-sm lg:col-span-2">
+          <Card id="tour-tab-bar" className="rounded-3xl shadow-sm lg:col-span-2">
             <CardHeader>
               <CardTitle>Execution Center</CardTitle>
             </CardHeader>
@@ -1651,6 +1713,7 @@ export default function LifeResetTrackerApp() {
                 })()}
 
                 <motion.div
+                  id="tour-tab-content"
                   key={activeTab}
                   initial={{ opacity: 0, y: 48 }}
                   animate={{ opacity: 1, y: 0 }}
