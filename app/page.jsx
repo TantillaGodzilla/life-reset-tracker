@@ -1831,6 +1831,29 @@ export default function LifeResetTrackerApp() {
                 </TabsContent>
 
                 <TabsContent value="editor" className="mt-6 space-y-6">
+                  <Card className="rounded-2xl border shadow-none">
+                    <CardHeader>
+                      <CardTitle className="text-base">Weekly Performance Targets</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                        {[
+                          ['calls', 'Call Target'],
+                          ['texts', 'Text Target'],
+                          ['appointments', 'Appt Target'],
+                          ['shows', 'Show Target'],
+                          ['deals', 'Deal Target'],
+                        ].map(([key, label]) => (
+                          <Card key={key} className="rounded-2xl border shadow-none">
+                            <CardContent className="space-y-2 p-4">
+                              <label className="text-sm font-medium">{label}</label>
+                              <Input value={data.targets[key]} onChange={(e) => updateTarget(key, e.target.value)} className="rounded-xl" />
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                   <div className="flex flex-wrap gap-3">
                     <Button onClick={restoreDefaults} variant="outline" className="rounded-2xl">
                       <RotateCcw className="mr-2 h-4 w-4" /> Restore Default Tasks
