@@ -845,8 +845,12 @@ const OutcomeEditor = ({ outcomes, setOutcomes }) => {
   );
 };
 
+const TAB_ORDER = ['daily', 'weekly', 'scoreboard', 'calendar', 'editor'];
+
 export default function LifeResetTrackerApp() {
   const [isEditingTodayTodo, setIsEditingTodayTodo] = useState(false);
+  const [activeTab, setActiveTab] = useState('daily');
+  const touchStartXRef = useRef(null);
   const [currentDateKey, setCurrentDateKey] = useState(getTodayKey());
   const [selectedDateKey, setSelectedDateKey] = useState(getTodayKey());
   const lastCurrentDateKeyRef = useRef(getTodayKey());
@@ -1154,6 +1158,23 @@ export default function LifeResetTrackerApp() {
     setData((prev) => ({ ...prev, dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate }));
   };
 
+  const handleTabTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTabTouchEnd = (e) => {
+    if (touchStartXRef.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (Math.abs(deltaX) < 50) return;
+    const currentIndex = TAB_ORDER.indexOf(activeTab);
+    if (deltaX < 0 && currentIndex < TAB_ORDER.length - 1) {
+      setActiveTab(TAB_ORDER[currentIndex + 1]);
+    } else if (deltaX > 0 && currentIndex > 0) {
+      setActiveTab(TAB_ORDER[currentIndex - 1]);
+    }
+  };
+
   const dailyCompleted = data.dailyTemplate.filter((item) => todayState[item.id]).length;
   const weeklyCompleted = data.weeklyTemplate.filter((item) => weekState[item.id]).length;
   const dailyProgress = data.dailyTemplate.length ? Math.round((dailyCompleted / data.dailyTemplate.length) * 100) : 0;
@@ -1284,7 +1305,7 @@ export default function LifeResetTrackerApp() {
               <CardTitle>Execution Center</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="daily" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="overflow-x-auto pb-0.5">
                   <TabsList className="grid min-w-[420px] w-full grid-cols-5 rounded-2xl">
                     <TabsTrigger value="daily">Daily</TabsTrigger>
@@ -1295,6 +1316,17 @@ export default function LifeResetTrackerApp() {
                   </TabsList>
                 </div>
 
+                <div className="mt-3 flex justify-center gap-1.5 md:hidden">
+                  {TAB_ORDER.map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`h-1.5 rounded-full transition-all ${activeTab === tab ? 'w-5 bg-slate-800' : 'w-1.5 bg-slate-300'}`}
+                    />
+                  ))}
+                </div>
+
+                <div onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
                 <TabsContent value="daily" className="mt-6 space-y-6">
                   {showDailyCountdownCard ? (
                     <Card className={`rounded-2xl border shadow-none ${countdownStyles.card}`}>
@@ -1645,6 +1677,7 @@ export default function LifeResetTrackerApp() {
                   <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} />
                   <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} />
                 </TabsContent>
+                </div>
               </Tabs>
             </CardContent>
           </Card>
