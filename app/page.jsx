@@ -1527,7 +1527,7 @@ export default function LifeResetTrackerApp() {
                   const widths = { '-2': 'w-16', '-1': 'w-24', '0': 'w-36', '1': 'w-24', '2': 'w-16' };
                   const styles = { '-2': 'text-base text-slate-300', '-1': 'text-xl text-slate-400', '0': 'text-2xl font-semibold text-slate-900', '1': 'text-xl text-slate-400', '2': 'text-base text-slate-300' };
                   return (
-                    <div className="md:hidden relative flex items-center justify-center py-3 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent)]">
+                    <div onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd} className="md:hidden relative flex items-center justify-center py-3 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent)]">
                       {[-2, -1, 0, 1, 2].map((offset) => {
                         const tab = getTab(offset);
                         return (
