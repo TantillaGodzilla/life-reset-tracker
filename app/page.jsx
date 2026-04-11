@@ -1353,10 +1353,10 @@ export default function LifeResetTrackerApp() {
                   const n = TAB_ORDER.length;
                   const idx = TAB_ORDER.indexOf(activeTab);
                   const getTab = (offset) => TAB_ORDER[((idx + offset) % n + n) % n];
-                  const widths = { '-2': 'w-10', '-1': 'w-16', '0': 'w-24', '1': 'w-16', '2': 'w-10' };
-                  const styles = { '-2': 'text-xs text-slate-300', '-1': 'text-sm text-slate-400', '0': 'text-base font-semibold text-slate-900', '1': 'text-sm text-slate-400', '2': 'text-xs text-slate-300' };
+                  const widths = { '-2': 'w-16', '-1': 'w-24', '0': 'w-36', '1': 'w-24', '2': 'w-16' };
+                  const styles = { '-2': 'text-base text-slate-300', '-1': 'text-xl text-slate-400', '0': 'text-2xl font-semibold text-slate-900', '1': 'text-xl text-slate-400', '2': 'text-base text-slate-300' };
                   return (
-                    <div className="md:hidden flex items-center justify-center py-2 overflow-hidden">
+                    <div className="md:hidden flex items-center justify-center py-3 overflow-hidden">
                       {[-2, -1, 0, 1, 2].map((offset) => {
                         const tab = getTab(offset);
                         return (
