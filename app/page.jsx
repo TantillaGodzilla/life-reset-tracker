@@ -1351,7 +1351,7 @@ export default function LifeResetTrackerApp() {
                           <button
                             key={offset}
                             onClick={() => setActiveTab(tab)}
-                            className={`${widths[offset]} text-center truncate transition-all shrink-0 ${styles[offset]}`}
+                            className={`${widths[offset]} flex items-center justify-center transition-all shrink-0 ${styles[offset]}`}
                           >
                             {TAB_LABELS[tab]}
                           </button>
