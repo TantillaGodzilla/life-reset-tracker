@@ -1170,15 +1170,21 @@ export default function LifeResetTrackerApp() {
     setData((prev) => ({ ...prev, dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate }));
   };
 
+  const touchStartYRef = useRef(null);
+
   const handleTabTouchStart = (e) => {
     touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
   };
 
   const handleTabTouchEnd = (e) => {
     if (touchStartXRef.current === null) return;
     const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
     touchStartXRef.current = null;
-    if (Math.abs(deltaX) < 50) return;
+    touchStartYRef.current = null;
+    // Ignore if mostly vertical (scrolling) or too short
+    if (Math.abs(deltaX) < 60 || Math.abs(deltaY) > Math.abs(deltaX) * 0.6) return;
     const currentIndex = TAB_ORDER.indexOf(activeTab);
     if (deltaX < 0 && currentIndex < TAB_ORDER.length - 1) {
       setActiveTab(TAB_ORDER[currentIndex + 1]);
