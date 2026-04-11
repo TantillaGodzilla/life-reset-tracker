@@ -492,9 +492,9 @@ const BlockTaskEditor = ({ title, tasks, setTasks, suggestions }) => {
               <CardContent className="space-y-3">
                 {groupedTasks[section].map((task) => (
                   <div key={task.id} className="flex items-center gap-3 rounded-2xl border p-3">
-                    <Checkbox checked={false} disabled />
-                    <Input value={task.label} onChange={(e) => updateTask(task.id, e.target.value)} className="rounded-xl" />
-                    <Button variant="outline" size="icon" className="rounded-xl" onClick={() => removeTask(task.id)}>
+                    <Checkbox checked={false} disabled className="shrink-0" />
+                    <Input value={task.label} onChange={(e) => updateTask(task.id, e.target.value)} className="flex-1 min-w-0 rounded-xl" />
+                    <Button variant="outline" size="icon" className="shrink-0 rounded-xl" onClick={() => removeTask(task.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -529,9 +529,9 @@ const CountdownEditor = ({ countdown, setCountdown, clearCountdown }) => {
   return (
     <Card className="rounded-2xl border shadow-none">
       <CardHeader>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Long-Term Goal Countdown</CardTitle>
-          <Button variant="outline" onClick={clearCountdown} className="rounded-xl">
+          <Button variant="outline" onClick={clearCountdown} className="rounded-xl shrink-0">
             <Trash2 className="mr-2 h-4 w-4" /> Clear Countdown
           </Button>
         </div>
@@ -662,9 +662,9 @@ const WeeklyRoutineEditor = ({ routine, setRoutine }) => {
                         value={item.text}
                         onChange={(e) => updateItem(day, item.id, e.target.value)}
                         placeholder="Routine checklist item"
-                        className="rounded-xl"
+                        className="flex-1 min-w-0 rounded-xl"
                       />
-                      <Button variant="outline" size="icon" className="rounded-xl" onClick={() => removeItem(day, item.id)}>
+                      <Button variant="outline" size="icon" className="shrink-0 rounded-xl" onClick={() => removeItem(day, item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1285,13 +1285,15 @@ export default function LifeResetTrackerApp() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="daily" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 rounded-2xl">
-                  <TabsTrigger value="daily">Daily</TabsTrigger>
-                  <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                  <TabsTrigger value="scoreboard">Scoreboard</TabsTrigger>
-                  <TabsTrigger value="calendar">Calendar</TabsTrigger>
-                  <TabsTrigger value="editor">Editor</TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto pb-0.5">
+                  <TabsList className="grid min-w-[420px] w-full grid-cols-5 rounded-2xl">
+                    <TabsTrigger value="daily">Daily</TabsTrigger>
+                    <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                    <TabsTrigger value="scoreboard">Scoreboard</TabsTrigger>
+                    <TabsTrigger value="calendar">Calendar</TabsTrigger>
+                    <TabsTrigger value="editor">Editor</TabsTrigger>
+                  </TabsList>
+                </div>
 
                 <TabsContent value="daily" className="mt-6 space-y-6">
                   {showDailyCountdownCard ? (
