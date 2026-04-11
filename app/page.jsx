@@ -1028,7 +1028,29 @@ export default function LifeResetTrackerApp() {
   const requestNotificationPermission = async () => {
     if (typeof Notification === 'undefined') return;
     await Notification.requestPermission();
-    setData((prev) => ({ ...prev })); // force re-render to show new status
+    setData((prev) => ({ ...prev }));
+  };
+
+  const addAlarm = () => {
+    const key = `custom-${Date.now()}`;
+    setData((prev) => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        alarms: {
+          ...prev.notifications.alarms,
+          [key]: { enabled: false, time: '08:00', label: 'New Alarm' },
+        },
+      },
+    }));
+  };
+
+  const removeAlarm = (key) => {
+    setData((prev) => {
+      const alarms = { ...prev.notifications.alarms };
+      delete alarms[key];
+      return { ...prev, notifications: { ...prev.notifications, alarms } };
+    });
   };
   const lastCurrentDateKeyRef = useRef(getTodayKey());
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -1902,66 +1924,66 @@ export default function LifeResetTrackerApp() {
                   </CollapsibleSection>
                 </TabsContent>
 
-                <TabsContent value="alerts" className="mt-6 space-y-6">
-                  {/* Permission */}
-                  <Card className="rounded-2xl border shadow-none">
-                    <CardHeader><CardTitle className="text-base">Browser Notifications</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center justify-between rounded-2xl border p-4">
-                        <div>
-                          <div className="text-sm font-medium">Permission</div>
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            {typeof Notification === 'undefined' ? 'Not supported' : Notification.permission === 'granted' ? '✓ Granted' : Notification.permission === 'denied' ? '✗ Denied — enable in browser settings' : 'Not requested yet'}
-                          </div>
+                <TabsContent value="alerts" className="mt-6 space-y-3">
+                  <CollapsibleSection title="Browser Notifications" defaultOpen>
+                    <div className="flex items-center justify-between rounded-2xl border p-4">
+                      <div>
+                        <div className="text-sm font-medium">Permission</div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {typeof Notification === 'undefined' ? 'Not supported' : Notification.permission === 'granted' ? '✓ Granted' : Notification.permission === 'denied' ? '✗ Denied — enable in browser settings' : 'Not requested yet'}
                         </div>
-                        {typeof Notification !== 'undefined' && Notification.permission !== 'granted' && (
-                          <Button onClick={requestNotificationPermission} className="rounded-xl shrink-0">Enable</Button>
-                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Sound */}
-                  <Card className="rounded-2xl border shadow-none">
-                    <CardHeader><CardTitle className="text-base">Sound</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between rounded-2xl border p-4">
-                        <div className="text-sm font-medium">Sound enabled</div>
-                        <Switch checked={data.notifications.soundEnabled} onCheckedChange={(v) => updateNotification('soundEnabled', v)} />
-                      </div>
-                      {data.notifications.soundEnabled && (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Sound type</div>
-                          <div className="grid grid-cols-3 gap-2">
-                            {['chime', 'beep', 'silent'].map((t) => (
-                              <Button key={t} type="button" variant={data.notifications.soundType === t ? 'default' : 'outline'} onClick={() => updateNotification('soundType', t)} className="rounded-xl capitalize">{t}</Button>
-                            ))}
-                          </div>
-                          <Button variant="outline" className="rounded-xl w-full mt-2" onClick={() => playSound(data.notifications.soundType)}>
-                            Test Sound
-                          </Button>
-                        </div>
+                      {typeof Notification !== 'undefined' && Notification.permission !== 'granted' && (
+                        <Button onClick={requestNotificationPermission} className="rounded-xl shrink-0">Enable</Button>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CollapsibleSection>
 
-                  {/* Alarms */}
-                  <Card className="rounded-2xl border shadow-none">
-                    <CardHeader><CardTitle className="text-base">Alarms</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
+                  <CollapsibleSection title="Sound">
+                    <div className="flex items-center justify-between rounded-2xl border p-4">
+                      <div className="text-sm font-medium">Sound enabled</div>
+                      <Switch checked={data.notifications.soundEnabled} onCheckedChange={(v) => updateNotification('soundEnabled', v)} />
+                    </div>
+                    {data.notifications.soundEnabled && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Sound type</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {['chime', 'beep', 'silent'].map((t) => (
+                            <Button key={t} type="button" variant={data.notifications.soundType === t ? 'default' : 'outline'} onClick={() => updateNotification('soundType', t)} className="rounded-xl capitalize">{t}</Button>
+                          ))}
+                        </div>
+                        <Button variant="outline" className="rounded-xl w-full" onClick={() => playSound(data.notifications.soundType)}>
+                          Test Sound
+                        </Button>
+                      </div>
+                    )}
+                  </CollapsibleSection>
+
+                  <CollapsibleSection title="Alarms" defaultOpen>
+                    <div className="space-y-3">
                       {Object.entries(data.notifications.alarms).map(([key, alarm]) => (
                         <div key={key} className="rounded-2xl border p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm font-medium">{alarm.label}</div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={alarm.label}
+                              onChange={(e) => updateNotification(`alarms.${key}.label`, e.target.value)}
+                              className="flex-1 rounded-xl text-sm font-medium"
+                            />
                             <Switch checked={alarm.enabled} onCheckedChange={(v) => updateNotification(`alarms.${key}.enabled`, v)} />
+                            <Button variant="outline" size="icon" className="shrink-0 rounded-xl" onClick={() => removeAlarm(key)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                           {alarm.enabled && (
                             <Input type="time" value={alarm.time} onChange={(e) => updateNotification(`alarms.${key}.time`, e.target.value)} className="rounded-xl" />
                           )}
                         </div>
                       ))}
-                    </CardContent>
-                  </Card>
+                      <Button variant="outline" className="rounded-xl w-full" onClick={addAlarm}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Alarm
+                      </Button>
+                    </div>
+                  </CollapsibleSection>
                 </TabsContent>
 
                 </div>
