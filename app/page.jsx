@@ -937,9 +937,6 @@ export default function LifeResetTrackerApp() {
     return () => clearInterval(interval);
   }, []);
 
-  const dataRef = useRef(data);
-  useEffect(() => { dataRef.current = data; }, [data]);
-
   useEffect(() => {
     const firedRef = new Set();
     const check = () => {
@@ -1054,6 +1051,9 @@ export default function LifeResetTrackerApp() {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
+
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; }, [data]);
 
   useEffect(() => {
     const checkDateChange = () => {
