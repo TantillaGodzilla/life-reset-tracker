@@ -1185,11 +1185,12 @@ export default function LifeResetTrackerApp() {
     touchStartYRef.current = null;
     // Ignore if mostly vertical (scrolling) or too short
     if (Math.abs(deltaX) < 60 || Math.abs(deltaY) > Math.abs(deltaX) * 0.6) return;
+    const n = TAB_ORDER.length;
     const currentIndex = TAB_ORDER.indexOf(activeTab);
-    if (deltaX < 0 && currentIndex < TAB_ORDER.length - 1) {
-      setActiveTab(TAB_ORDER[currentIndex + 1]);
-    } else if (deltaX > 0 && currentIndex > 0) {
-      setActiveTab(TAB_ORDER[currentIndex - 1]);
+    if (deltaX < 0) {
+      setActiveTab(TAB_ORDER[(currentIndex + 1) % n]);
+    } else {
+      setActiveTab(TAB_ORDER[((currentIndex - 1) % n + n) % n]);
     }
   };
 
@@ -1334,30 +1335,27 @@ export default function LifeResetTrackerApp() {
                   </TabsList>
                 </div>
 
-                {/* Mobile tab bar */}
-                <div className="md:hidden flex items-center justify-between px-2 py-1">
-                  {(() => {
-                    const idx = TAB_ORDER.indexOf(activeTab);
-                    const labels = { daily: 'Daily', weekly: 'Weekly', scoreboard: 'Scoreboard', calendar: 'Calendar', editor: 'Editor' };
-                    const prev2 = TAB_ORDER[idx - 2];
-                    const prev1 = TAB_ORDER[idx - 1];
-                    const next1 = TAB_ORDER[idx + 1];
-                    const next2 = TAB_ORDER[idx + 2];
-                    return (
-                      <>
-                        <div className="flex items-center gap-2">
-                          {prev2 && <button onClick={() => setActiveTab(prev2)} className="text-xs text-slate-300 transition-all">{labels[prev2]}</button>}
-                          {prev1 && <button onClick={() => setActiveTab(prev1)} className="text-sm text-slate-400 transition-all">{labels[prev1]}</button>}
-                        </div>
-                        <span className="text-base font-semibold text-slate-900">{labels[activeTab]}</span>
-                        <div className="flex items-center gap-2">
-                          {next1 && <button onClick={() => setActiveTab(next1)} className="text-sm text-slate-400 transition-all">{labels[next1]}</button>}
-                          {next2 && <button onClick={() => setActiveTab(next2)} className="text-xs text-slate-300 transition-all">{labels[next2]}</button>}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
+                {/* Mobile carousel tab bar */}
+                {(() => {
+                  const TAB_LABELS = { daily: 'Daily', weekly: 'Weekly', scoreboard: 'Scoreboard', calendar: 'Calendar', editor: 'Editor' };
+                  const n = TAB_ORDER.length;
+                  const idx = TAB_ORDER.indexOf(activeTab);
+                  const getTab = (offset) => TAB_ORDER[((idx + offset) % n + n) % n];
+                  return (
+                    <div className="md:hidden flex items-center justify-center gap-4 py-2 overflow-hidden">
+                      {[-2, -1, 0, 1, 2].map((offset) => {
+                        const tab = getTab(offset);
+                        const isActive = offset === 0;
+                        const sizeClass = isActive ? 'text-base font-semibold text-slate-900' : Math.abs(offset) === 1 ? 'text-sm font-medium text-slate-400' : 'text-xs text-slate-300';
+                        return (
+                          <button key={offset} onClick={() => setActiveTab(tab)} className={`transition-all shrink-0 ${sizeClass}`}>
+                            {TAB_LABELS[tab]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
                 <div onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
                 <TabsContent value="daily" className="mt-6 space-y-6">
