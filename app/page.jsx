@@ -370,16 +370,34 @@ try {
   console.error(error);
 }
 
-const SectionCard = ({ title, items, state, onToggle }) => {
+const SectionCard = ({ title, items, state, onToggle, onCheckSound, onCompleteSound }) => {
   const [reopened, setReopened] = useState(false);
   const completedCount = items.filter((item) => state[item.id]).length;
   const progress = items.length ? Math.round((completedCount / items.length) * 100) : 0;
   const isComplete = items.length > 0 && completedCount === items.length;
   const showContent = !isComplete || reopened;
+  const prevCompleteRef = useRef(isComplete);
 
   useEffect(() => {
     if (!isComplete) setReopened(false);
   }, [isComplete]);
+
+  useEffect(() => {
+    if (isComplete && !prevCompleteRef.current) {
+      onCompleteSound?.();
+    }
+    prevCompleteRef.current = isComplete;
+  }, [isComplete, onCompleteSound]);
+
+  const handleToggle = (id, checked) => {
+    if (checked) {
+      // If this is the last unchecked item, skip the tick — the block complete sound covers it
+      const afterToggle = items.filter((item) => (item.id === id ? checked : !!state[item.id]));
+      const willComplete = items.length > 0 && afterToggle.length === items.length;
+      if (!willComplete) onCheckSound?.();
+    }
+    onToggle(id, checked);
+  };
 
   return (
     <motion.div layout transition={{ type: 'spring', stiffness: 120, damping: 20 }}>
@@ -411,7 +429,7 @@ const SectionCard = ({ title, items, state, onToggle }) => {
               <CardContent className="space-y-3">
                 {items.map((item) => (
                   <label key={item.id} className="flex cursor-pointer items-center gap-3 rounded-2xl border p-3">
-                    <Checkbox checked={!!state[item.id]} onCheckedChange={(checked) => onToggle(item.id, !!checked)} />
+                    <Checkbox checked={!!state[item.id]} onCheckedChange={(checked) => handleToggle(item.id, !!checked)} />
                     <span className={state[item.id] ? 'line-through text-slate-400' : ''}>{item.label}</span>
                   </label>
                 ))}
@@ -424,12 +442,14 @@ const SectionCard = ({ title, items, state, onToggle }) => {
   );
 };
 
-const CollapsibleSection = ({ title, children, defaultOpen = false }) => {
+const CollapsibleSection = ({ title, children, defaultOpen = false, id }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div>
       <button
+        id={id}
         type="button"
+        data-open={open}
         onClick={() => setOpen((prev) => !prev)}
         className="flex w-full items-center justify-between rounded-2xl border bg-white px-5 py-3 text-left shadow-none"
       >
@@ -572,7 +592,7 @@ const CountdownEditor = ({ countdown, setCountdown, clearCountdown, cardStyle = 
   };
 
   return (
-    <Card className={`rounded-2xl border shadow-none ${cardStyle}`}>
+    <Card id="tour-countdown-editor" className={`rounded-2xl border shadow-none ${cardStyle}`}>
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Long-Term Goal Countdown</CardTitle>
@@ -600,7 +620,7 @@ const CountdownEditor = ({ countdown, setCountdown, clearCountdown, cardStyle = 
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Calendar Highlight</label>
-          <div className="flex flex-wrap gap-3">
+          <div id="tour-color-swatches" className="flex flex-wrap gap-3">
             {Object.entries(countdownSwatches).map(([key, styles]) => {
               const selected = countdown.color === key;
               return (
@@ -751,7 +771,7 @@ const OutcomeEditor = ({ outcomes, setOutcomes, cardStyle = '' }) => {
   };
 
   return (
-    <Card className={`rounded-2xl border shadow-none ${cardStyle}`}>
+    <Card id="tour-outcomes-editor" className={`rounded-2xl border shadow-none ${cardStyle}`}>
       <CardHeader>
         <CardTitle className="text-base">Countdown Outcomes</CardTitle>
       </CardHeader>
@@ -899,6 +919,8 @@ const TAB_ORDER = ['daily', 'weekly', 'scoreboard', 'calendar', 'editor', 'alert
 const defaultNotifications = {
   soundEnabled: true,
   soundType: 'chime',
+  checkboxSoundEnabled: false,
+  blockCompleteSoundEnabled: false,
   alarms: {
     wake:  { enabled: false, time: '06:00', label: 'Wake Alarm' },
     morning: { enabled: false, time: '08:00', label: 'Morning Reminder' },
@@ -921,6 +943,31 @@ const playSound = (type) => {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.5);
         osc.start(ctx.currentTime + i * 0.18);
         osc.stop(ctx.currentTime + i * 0.18 + 0.5);
+      });
+    } else if (type === 'tick') {
+      // Short soft pop for checkbox check
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1000, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1);
+    } else if (type === 'complete') {
+      // Ascending arpeggio for block completion
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+        gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + i * 0.1 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.35);
+        osc.start(ctx.currentTime + i * 0.1);
+        osc.stop(ctx.currentTime + i * 0.1 + 0.35);
       });
     } else {
       const osc = ctx.createOscillator();
@@ -983,7 +1030,28 @@ const SPOTLIGHT_STEPS = [
     tab: 'editor',
     elementId: 'tour-tab-content',
     title: 'Editor — Make It Yours',
-    body: 'Customize your tasks, weekly routine, performance metrics, and set a personal goal countdown from here.',
+    body: 'Customize your tasks, weekly routine, and performance metrics. Scroll down to set your personal goal countdown.',
+  },
+  {
+    tab: 'editor',
+    elementId: 'tour-countdown-editor',
+    openSectionId: 'tour-countdown-section-btn',
+    title: 'Goal Countdown',
+    body: 'Set a title, start date, and end date for any personal goal — a reset, a fitness target, a business milestone. It tracks Day X of Y on your dashboard.',
+  },
+  {
+    tab: 'editor',
+    elementId: 'tour-color-swatches',
+    openSectionId: 'tour-countdown-section-btn',
+    title: 'Color Code Your Goal',
+    body: 'Pick a color for your countdown. It highlights the matching date range on your calendar and tints the countdown card on the dashboard.',
+  },
+  {
+    tab: 'editor',
+    elementId: 'tour-outcomes-editor',
+    openSectionId: 'tour-countdown-section-btn',
+    title: 'Track Outcomes',
+    body: 'Add measurable outcomes tied to your countdown — weight, revenue, steps, anything. Set a starting value, a goal, and update your current value daily to watch progress build.',
   },
 ];
 
@@ -994,21 +1062,43 @@ const SpotlightTour = ({ onClose, setActiveTab }) => {
   const isLast = step === SPOTLIGHT_STEPS.length - 1;
   const PAD = 12;
 
+  // Side effects: tab switch, open collapsible, scroll into view
   useEffect(() => {
     const s = SPOTLIGHT_STEPS[step];
     if (s.tab) setActiveTab(s.tab);
-    const delay = s.tab ? 420 : 80;
     const t = setTimeout(() => {
-      const el = document.getElementById(s.elementId);
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (s.openSectionId) {
+        const btn = document.getElementById(s.openSectionId);
+        if (btn && btn.getAttribute('data-open') !== 'true') btn.click();
+      }
       setTimeout(() => {
-        const r = el.getBoundingClientRect();
-        setRect({ left: r.left, top: r.top, width: r.width, height: r.height });
-      }, 320);
-    }, delay);
+        const el = document.getElementById(s.elementId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, s.openSectionId ? 320 : 0);
+    }, s.tab ? 420 : 60);
     return () => clearTimeout(t);
   }, [step, setActiveTab]);
+
+  // Continuous rect tracking — spotlight follows the element even when scrolling
+  useEffect(() => {
+    let frameId;
+    const track = () => {
+      const el = document.getElementById(SPOTLIGHT_STEPS[step].elementId);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          setRect(prev => {
+            if (!prev || Math.abs(prev.top - r.top) > 0.5 || Math.abs(prev.left - r.left) > 0.5 || Math.abs(prev.width - r.width) > 0.5 || Math.abs(prev.height - r.height) > 0.5)
+              return { left: r.left, top: r.top, width: r.width, height: r.height };
+            return prev;
+          });
+        }
+      }
+      frameId = requestAnimationFrame(track);
+    };
+    frameId = requestAnimationFrame(track);
+    return () => cancelAnimationFrame(frameId);
+  }, [step]);
 
   const goNext = () => { if (isLast) { onClose(); return; } setRect(null); setStep(s => s + 1); };
   const goBack = () => { setRect(null); setStep(s => s - 1); };
@@ -1017,8 +1107,8 @@ const SpotlightTour = ({ onClose, setActiveTab }) => {
     <>
       <style>{`
         @keyframes tour-pulse {
-          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
-          50% { opacity: 0.85; box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0.35); }
+          50% { opacity: 0.8; box-shadow: 0 0 0 7px rgba(255,255,255,0); }
         }
         .tour-ring { animation: tour-pulse 2s ease-in-out infinite; }
       `}</style>
@@ -1757,7 +1847,15 @@ export default function LifeResetTrackerApp() {
 
                   <motion.div layout className="space-y-6">
                     {orderedDailySections.map(([section, items]) => (
-                      <SectionCard key={section} title={section} items={items} state={viewingState} onToggle={isArchiveMode ? () => {} : setDailyCheck} />
+                      <SectionCard
+                        key={section}
+                        title={section}
+                        items={items}
+                        state={viewingState}
+                        onToggle={isArchiveMode ? () => {} : setDailyCheck}
+                        onCheckSound={data.notifications.checkboxSoundEnabled ? () => playSound('tick') : undefined}
+                        onCompleteSound={data.notifications.blockCompleteSoundEnabled ? () => playSound('complete') : undefined}
+                      />
                     ))}
                   </motion.div>
                   {!isArchiveMode && (
@@ -1778,7 +1876,15 @@ export default function LifeResetTrackerApp() {
                     <div className="space-y-6">
                       <motion.div layout className="space-y-6">
                         {orderedWeeklySections.map(([section, items]) => (
-                          <SectionCard key={section} title={section} items={items} state={weekState} onToggle={setWeeklyCheck} />
+                          <SectionCard
+                            key={section}
+                            title={section}
+                            items={items}
+                            state={weekState}
+                            onToggle={setWeeklyCheck}
+                            onCheckSound={data.notifications.checkboxSoundEnabled ? () => playSound('tick') : undefined}
+                            onCompleteSound={data.notifications.blockCompleteSoundEnabled ? () => playSound('complete') : undefined}
+                          />
                         ))}
                       </motion.div>
                       <div className="flex gap-3">
@@ -2117,7 +2223,7 @@ export default function LifeResetTrackerApp() {
                     </div>
                   </CollapsibleSection>
 
-                  <CollapsibleSection title="Goal Countdown & Outcomes">
+                  <CollapsibleSection title="Goal Countdown & Outcomes" id="tour-countdown-section-btn">
                     <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} cardStyle={countdownStyles.card} />
                     <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} cardStyle={countdownStyles.card} />
                   </CollapsibleSection>
@@ -2140,22 +2246,42 @@ export default function LifeResetTrackerApp() {
 
                   <CollapsibleSection title="Sound">
                     <div className="flex items-center justify-between rounded-2xl border p-4">
-                      <div className="text-sm font-medium">Sound enabled</div>
+                      <div className="text-sm font-medium">Alarm sound enabled</div>
                       <Switch checked={data.notifications.soundEnabled} onCheckedChange={(v) => updateNotification('soundEnabled', v)} />
                     </div>
                     {data.notifications.soundEnabled && (
                       <div className="space-y-2">
-                        <div className="text-sm font-medium">Sound type</div>
+                        <div className="text-sm font-medium">Alarm sound type</div>
                         <div className="grid grid-cols-3 gap-2">
                           {['chime', 'beep', 'silent'].map((t) => (
                             <Button key={t} type="button" variant={data.notifications.soundType === t ? 'default' : 'outline'} onClick={() => updateNotification('soundType', t)} className="rounded-xl capitalize">{t}</Button>
                           ))}
                         </div>
                         <Button variant="outline" className="rounded-xl w-full" onClick={() => playSound(data.notifications.soundType)}>
-                          Test Sound
+                          Test Alarm Sound
                         </Button>
                       </div>
                     )}
+                    <div className="flex items-center justify-between rounded-2xl border p-4">
+                      <div>
+                        <div className="text-sm font-medium">Checkbox sound</div>
+                        <div className="text-xs text-slate-500 mt-0.5">Play a soft tick each time you check off a task</div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => playSound('tick')}>Test</Button>
+                        <Switch checked={!!data.notifications.checkboxSoundEnabled} onCheckedChange={(v) => updateNotification('checkboxSoundEnabled', v)} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-2xl border p-4">
+                      <div>
+                        <div className="text-sm font-medium">Block complete sound</div>
+                        <div className="text-xs text-slate-500 mt-0.5">Play a celebration sound when a task block is fully done</div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => playSound('complete')}>Test</Button>
+                        <Switch checked={!!data.notifications.blockCompleteSoundEnabled} onCheckedChange={(v) => updateNotification('blockCompleteSoundEnabled', v)} />
+                      </div>
+                    </div>
                   </CollapsibleSection>
 
                   <CollapsibleSection title="Alarms">
