@@ -152,40 +152,22 @@ const getWeekDates = (date = new Date()) => {
 };
 
 const defaultDailyTemplate = [
-  { id: 'meds', label: 'Take meds', section: 'Morning Reset' },
-  { id: 'supplements', label: 'Supplements / caffeine mix', section: 'Morning Reset' },
-  { id: 'shower', label: 'Jump in shower', section: 'Morning Reset' },
-  { id: 'skincare', label: 'Skincare', section: 'Morning Reset' },
-  { id: 'groom', label: 'Groom face (beard, eyebrows)', section: 'Morning Reset' },
-  { id: 'hair', label: 'Brush hair', section: 'Morning Reset' },
-  { id: 'teeth', label: 'Brush teeth', section: 'Morning Reset' },
-  { id: 'dress', label: 'Change clothes by 6:00 AM', section: 'Morning Reset' },
-  { id: 'computer', label: 'Start computer work at 6:00 AM', section: 'Build Block' },
-  { id: 'learn', label: 'Learning / skill building', section: 'Build Block' },
-  { id: 'claude', label: 'Claude / OpenClaw work', section: 'Build Block' },
-  { id: 'remote', label: 'Remote desktop setup / check', section: 'Build Block' },
-  { id: 'leave', label: 'Leave for work at 7:15 AM', section: 'Commute / Start' },
-  { id: 'clockin', label: 'Clock in at 7:30 AM', section: 'Commute / Start' },
-  { id: 'laptop', label: 'Set up laptop', section: 'Work Start' },
-  { id: 'review', label: 'Review dealership work / pipeline', section: 'Work Start' },
-  { id: 'plan', label: 'Make the day plan / weekly-style page', section: 'Work Start' },
-  { id: 'calls', label: 'Complete daily call target', section: 'Sales Core' },
-  { id: 'texts', label: 'Complete text follow-ups', section: 'Sales Core' },
-  { id: 'videos', label: 'Send personalized videos', section: 'Sales Core' },
-  { id: 'appointments', label: 'Set appointments', section: 'Sales Core' },
-  { id: 'newleads', label: 'Add new leads', section: 'Sales Core' },
-  { id: 'scoreboard', label: 'Log numbers / scoreboard', section: 'Closeout' },
-  { id: 'tomorrow', label: 'Prep tomorrow follow-ups', section: 'Closeout' },
-  { id: 'winddown', label: 'Wind down for 9:00 PM sleep', section: 'Night Reset' },
+  { id: 'morning-1', label: 'Wake up and get moving', section: 'Morning' },
+  { id: 'morning-2', label: 'Get dressed and ready', section: 'Morning' },
+  { id: 'morning-3', label: 'Take morning supplements / vitamins', section: 'Morning' },
+  { id: 'work-1', label: 'Work on top priority task', section: 'Deep Work' },
+  { id: 'work-2', label: 'No-distraction focus block (60+ min)', section: 'Deep Work' },
+  { id: 'work-3', label: 'Review progress and adjust plan', section: 'Deep Work' },
+  { id: 'evening-1', label: 'Review the day — what got done?', section: 'Evening' },
+  { id: 'evening-2', label: 'Wind down and prep for tomorrow', section: 'Evening' },
 ];
 
 const defaultWeeklyTemplate = [
-  { id: 'income', label: 'Set weekly income target', section: 'Weekly Plan' },
-  { id: 'activity', label: 'Set weekly calls / appointments / sales targets', section: 'Weekly Plan' },
-  { id: 'pipeline', label: 'Review pipeline: hot / warm / cold', section: 'Weekly Plan' },
-  { id: 'top10', label: 'Identify top 10 people to close', section: 'Weekly Plan' },
-  { id: 'room', label: 'Clean room / workspace', section: 'Reset' },
-  { id: 'clothesprep', label: 'Prep work clothes for the week', section: 'Reset' },
+  { id: 'week-1', label: 'Plan the week — set your #1 goal', section: 'Weekly Plan' },
+  { id: 'week-2', label: 'Review last week — wins and lessons', section: 'Weekly Plan' },
+  { id: 'week-3', label: 'Set your top priorities for the week', section: 'Weekly Plan' },
+  { id: 'reset-1', label: 'Clean your workspace', section: 'Reset' },
+  { id: 'reset-2', label: 'Prep anything you need for the week ahead', section: 'Reset' },
 ];
 
 const grouped = (items) =>
@@ -207,19 +189,11 @@ const createEmptyMetrics = () => ({
 });
 
 const defaultTargets = {
-  calls: '40',
-  texts: '20',
-  appointments: '3',
-  shows: '2',
-  deals: '1',
-};
-
-const defaultCountdown = {
-  title: '60 day reset',
-  startDate: '2026-04-10',
-  endDate: '2026-06-09',
-  color: 'purple',
-  includeInMomentum: true,
+  calls: '',
+  texts: '',
+  appointments: '',
+  shows: '',
+  deals: '',
 };
 
 const emptyCountdown = {
@@ -230,12 +204,13 @@ const emptyCountdown = {
   includeInMomentum: false,
 };
 
+const defaultCountdown = emptyCountdown;
+
 const defaultWeeklyRoutine = {
   Sunday: {
-    note: 'Reset and prepare for the week ahead.',
+    note: 'Plan your week ahead.',
     items: [
-      { id: 'sun-1', text: 'Laundry and clothes prep', done: false },
-      { id: 'sun-2', text: 'Review upcoming week priorities', done: false },
+      { id: 'sun-1', text: 'Set weekly priorities', done: false },
     ],
   },
   Monday: { note: '', items: [] },
@@ -258,19 +233,7 @@ const defaultOutcome = () => ({
   placement: 'both',
 });
 
-const seededOutcomes = [
-  {
-    id: 'seed-weight',
-    label: 'Weight',
-    startingValue: '265',
-    endingValue: '205',
-    currentValue: '265',
-    unit: 'lbs',
-    unitPosition: 'suffix',
-    progressType: 'decrease',
-    placement: 'both',
-  },
-];
+const seededOutcomes = [];
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -924,9 +887,9 @@ const defaultNotifications = {
   soundEnabled: true,
   soundType: 'chime',
   alarms: {
-    wake:  { enabled: false, time: '05:30', label: 'Wake Alarm' },
-    leave: { enabled: false, time: '07:15', label: 'Leave for Work' },
-    sleep: { enabled: false, time: '21:00', label: 'Sleep Reminder' },
+    wake:  { enabled: false, time: '06:00', label: 'Wake Alarm' },
+    morning: { enabled: false, time: '08:00', label: 'Morning Reminder' },
+    sleep: { enabled: false, time: '22:00', label: 'Sleep Reminder' },
   },
 };
 
@@ -1468,9 +1431,9 @@ export default function LifeResetTrackerApp() {
               <div className="flex flex-wrap gap-2">
                 <Badge className="rounded-full px-3 py-1">Today: {formatLongDate(currentDateKey)}</Badge>
                 <Badge className="rounded-full px-3 py-1">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Badge>
-                <Badge className="rounded-full px-3 py-1">Wake: 5:30 AM</Badge>
-                <Badge className="rounded-full px-3 py-1">Leave: 7:15 AM</Badge>
-                <Badge className="rounded-full px-3 py-1">Sleep: 9:00 PM</Badge>
+                {Object.values(data.notifications.alarms).filter(a => a.enabled).map(a => (
+                  <Badge key={a.label} className="rounded-full px-3 py-1">{a.label}: {a.time}</Badge>
+                ))}
               </div>
               <p className="text-sm text-slate-600">
                 The app follows today’s real date automatically and keeps prior days saved in your calendar history.
@@ -2167,13 +2130,13 @@ export default function LifeResetTrackerApp() {
                     <div className="flex items-center gap-2 font-medium">
                       <Clock3 className="h-4 w-4" /> Morning anchor
                     </div>
-                    <div className="text-slate-500">5:30 AM wake</div>
+                    <div className="text-slate-500">{data.notifications.alarms.wake?.time || '—'} wake</div>
                   </div>
                   <div className="rounded-2xl border p-3">
                     <div className="flex items-center gap-2 font-medium">
                       <Moon className="h-4 w-4" /> Night anchor
                     </div>
-                    <div className="text-slate-500">9:00 PM sleep</div>
+                    <div className="text-slate-500">{data.notifications.alarms.sleep?.time || '—'} sleep</div>
                   </div>
                 </div>
               </CardContent>
