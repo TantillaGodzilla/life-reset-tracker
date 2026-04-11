@@ -929,6 +929,85 @@ const fireAlarm = (label, body, soundEnabled, soundType) => {
   }
 };
 
+const TUTORIAL_STEPS = [
+  {
+    icon: '👋',
+    title: 'Welcome to Life Tracker',
+    body: 'This app helps you build daily habits, track weekly goals, and measure progress toward a personal reset. Everything saves automatically to your device.',
+  },
+  {
+    icon: '✅',
+    title: 'Daily Tasks',
+    body: 'Check off tasks as you go. Sections turn green when complete and collapse out of the way. Double-tap a completed section to reopen it.',
+  },
+  {
+    icon: '👆',
+    title: 'Swipe to Navigate',
+    body: 'On mobile, swipe left or right anywhere on the screen to switch tabs — Daily, Weekly, Scoreboard, Calendar, Editor, and Alerts.',
+  },
+  {
+    icon: '📅',
+    title: 'Calendar & Archive',
+    body: 'The Calendar tab tracks your daily progress. Tap any past day to enter Archive mode — the whole dashboard shows that day read-only with a grey tint.',
+  },
+  {
+    icon: '🎯',
+    title: 'Goal Countdown',
+    body: 'Set a personal goal with a start and end date in the Editor tab under "Goal Countdown & Outcomes." Track measurable outcomes and watch your progress build.',
+  },
+  {
+    icon: '🔔',
+    title: 'Alerts & Alarms',
+    body: 'Go to the Alerts tab to set wake, sleep, and custom reminders with sound notifications. Your wake time also controls when each day resets.',
+  },
+  {
+    icon: '🚀',
+    title: "You're all set",
+    body: 'Customize your daily and weekly tasks in the Editor tab. Add your goal countdown, set your alarms, and start building momentum.',
+  },
+];
+
+const TutorialModal = ({ onClose }) => {
+  const [step, setStep] = useState(0);
+  const current = TUTORIAL_STEPS[step];
+  const isLast = step === TUTORIAL_STEPS.length - 1;
+  const isFirst = step === 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+      <motion.div
+        key={step}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl space-y-5"
+      >
+        <div className="text-4xl text-center">{current.icon}</div>
+        <div className="space-y-2 text-center">
+          <h2 className="text-lg font-semibold text-slate-900">{current.title}</h2>
+          <p className="text-sm text-slate-600 leading-relaxed">{current.body}</p>
+        </div>
+        <div className="flex justify-center gap-1.5">
+          {TUTORIAL_STEPS.map((_, i) => (
+            <div key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'w-5 bg-slate-800' : 'w-1.5 bg-slate-200'}`} />
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {!isFirst && (
+            <Button variant="outline" className="flex-1 rounded-2xl" onClick={() => setStep(s => s - 1)}>Back</Button>
+          )}
+          {isFirst && (
+            <Button variant="outline" className="flex-1 rounded-2xl text-slate-400" onClick={onClose}>Skip</Button>
+          )}
+          <Button className="flex-1 rounded-2xl" onClick={() => isLast ? onClose() : setStep(s => s + 1)}>
+            {isLast ? 'Get Started' : 'Next'}
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export default function LifeResetTrackerApp() {
   const [isEditingTodayTodo, setIsEditingTodayTodo] = useState(false);
   const [activeTab, setActiveTab] = useState('daily');
@@ -937,6 +1016,19 @@ export default function LifeResetTrackerApp() {
   const [currentDateKey, setCurrentDateKey] = useState(getTodayKey());
   const [selectedDateKey, setSelectedDateKey] = useState(getTodayKey());
   const [archiveDateKey, setArchiveDateKey] = useState(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    const seen = window.localStorage.getItem('life-tracker-tutorial-seen');
+    if (!seen) setShowTutorial(true);
+  }, []);
+
+  const closeTutorial = () => {
+    setShowTutorial(false);
+    window.localStorage.setItem('life-tracker-tutorial-seen', '1');
+  };
+
+  const restartTutorial = () => setShowTutorial(true);
 
   useEffect(() => {
     const tick = () => {
@@ -1411,6 +1503,8 @@ export default function LifeResetTrackerApp() {
   };
 
   return (
+    <>
+    {showTutorial && <TutorialModal onClose={closeTutorial} />}
     <div className="min-h-screen bg-slate-50 p-4 md:p-8" style={isArchiveMode ? { filter: 'saturate(0.55) brightness(0.97)' } : {}}>
       <div className="mx-auto max-w-7xl space-y-6">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4 lg:grid-cols-5">
@@ -2147,15 +2241,18 @@ export default function LifeResetTrackerApp() {
             <Card className="rounded-3xl shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Settings className="h-5 w-5" /> What changed
+                  <Settings className="h-5 w-5" /> About this app
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-slate-600">
-                <p>Daily and Weekly task editors now use Task Blocks with section-based editing.</p>
-                <p>Countdown cards now share more consistent styling, including the Daily updates card.</p>
-                <p>Overall countdown completion now appears in Scoreboard and on the main dashboard card.</p>
-                <p>Countdown progress can now add a weighted bonus to Momentum Score.</p>
-                <p>The app is prefilled with a 60 day reset and weight outcome for faster testing.</p>
+              <CardContent className="space-y-4 text-sm text-slate-600">
+                <div className="space-y-2">
+                  <p>Build daily habits, track weekly goals, and measure progress toward a personal reset. Everything saves automatically to your device.</p>
+                  <p>Customize your task lists, set a goal countdown, and configure alarms in the Editor and Alerts tabs.</p>
+                  <p>On mobile, swipe left and right to switch between tabs. Tap a past day on the Calendar to view your archived progress.</p>
+                </div>
+                <Button variant="outline" className="rounded-2xl w-full" onClick={restartTutorial}>
+                  Take the tour
+                </Button>
               </CardContent>
             </Card>
             </motion.div>
@@ -2163,6 +2260,7 @@ export default function LifeResetTrackerApp() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
