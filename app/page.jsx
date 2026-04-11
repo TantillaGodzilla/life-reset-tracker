@@ -1925,7 +1925,7 @@ export default function LifeResetTrackerApp() {
                 </TabsContent>
 
                 <TabsContent value="alerts" className="mt-6 space-y-3">
-                  <CollapsibleSection title="Browser Notifications" defaultOpen>
+                  <CollapsibleSection title="Browser Notifications">
                     <div className="flex items-center justify-between rounded-2xl border p-4">
                       <div>
                         <div className="text-sm font-medium">Permission</div>
@@ -1959,7 +1959,7 @@ export default function LifeResetTrackerApp() {
                     )}
                   </CollapsibleSection>
 
-                  <CollapsibleSection title="Alarms" defaultOpen>
+                  <CollapsibleSection title="Alarms">
                     <div className="space-y-3">
                       {Object.entries(data.notifications.alarms).map(([key, alarm]) => (
                         <div key={key} className="rounded-2xl border p-4 space-y-3">
