@@ -1397,6 +1397,7 @@ export default function LifeResetTrackerApp() {
           {hasConfiguredCountdown ? (
             <Card className={`rounded-3xl border shadow-sm ${countdownStyles.card}`}>
               <CardHeader>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Goal Countdown</p>
                 <CardTitle className="text-lg">{countdown.title}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
