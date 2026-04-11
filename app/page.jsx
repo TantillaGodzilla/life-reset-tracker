@@ -545,7 +545,7 @@ const BlockTaskEditor = ({ title, tasks, setTasks, suggestions, alarms = {}, onA
   );
 };
 
-const CountdownEditor = ({ countdown, setCountdown, clearCountdown }) => {
+const CountdownEditor = ({ countdown, setCountdown, clearCountdown, cardStyle = '' }) => {
   const stats = getCountdownStats(countdown);
 
   const updateField = (field, value) => {
@@ -553,7 +553,7 @@ const CountdownEditor = ({ countdown, setCountdown, clearCountdown }) => {
   };
 
   return (
-    <Card className="rounded-2xl border shadow-none">
+    <Card className={`rounded-2xl border shadow-none ${cardStyle}`}>
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Long-Term Goal Countdown</CardTitle>
@@ -708,7 +708,7 @@ const WeeklyRoutineEditor = ({ routine, setRoutine }) => {
   );
 };
 
-const OutcomeEditor = ({ outcomes, setOutcomes }) => {
+const OutcomeEditor = ({ outcomes, setOutcomes, cardStyle = '' }) => {
   const safeOutcomes = Array.isArray(outcomes) ? outcomes.map(normalizeOutcome) : [];
 
   const addOutcome = () => {
@@ -728,7 +728,7 @@ const OutcomeEditor = ({ outcomes, setOutcomes }) => {
   };
 
   return (
-    <Card className="rounded-2xl border shadow-none">
+    <Card className={`rounded-2xl border shadow-none ${cardStyle}`}>
       <CardHeader>
         <CardTitle className="text-base">Countdown Outcomes</CardTitle>
       </CardHeader>
@@ -1839,8 +1839,8 @@ export default function LifeResetTrackerApp() {
                   <BlockTaskEditor title="Daily Task Editor" tasks={data.dailyTemplate} setTasks={setDailyTemplate} suggestions={dailyBlockSuggestions} alarms={data.blockAlarms.daily} onAlarmChange={(section, field, value) => updateBlockAlarm('daily', section, field, value)} />
                   <BlockTaskEditor title="Weekly Task Editor" tasks={data.weeklyTemplate} setTasks={setWeeklyTemplate} suggestions={weeklyBlockSuggestions} alarms={data.blockAlarms.weekly} onAlarmChange={(section, field, value) => updateBlockAlarm('weekly', section, field, value)} />
                   <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} />
-                  <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} />
-                  <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} />
+                  <CountdownEditor countdown={countdown} setCountdown={setCountdown} clearCountdown={clearCountdown} cardStyle={countdownStyles.card} />
+                  <OutcomeEditor outcomes={countdownOutcomes} setOutcomes={setCountdownOutcomes} cardStyle={countdownStyles.card} />
                 </TabsContent>
 
                 <TabsContent value="alerts" className="mt-6 space-y-6">
