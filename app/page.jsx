@@ -632,7 +632,7 @@ const CountdownEditor = ({ countdown, setCountdown, clearCountdown, cardStyle = 
   );
 };
 
-const WeeklyRoutineEditor = ({ routine, setRoutine }) => {
+const WeeklyRoutineEditor = ({ routine, setRoutine, todayDayName }) => {
   const updateNote = (day, value) => {
     setRoutine((prev) => ({
       ...prev,
@@ -688,7 +688,11 @@ const WeeklyRoutineEditor = ({ routine, setRoutine }) => {
         <CardTitle className="text-base">Weekly Routine Editor</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {dayNames.map((day) => {
+        {(() => {
+          const todayIdx = todayDayName ? dayNames.indexOf(todayDayName) : 0;
+          const ordered = [...dayNames.slice(todayIdx), ...dayNames.slice(0, todayIdx)];
+          return ordered;
+        })().map((day) => {
           const current = normalizeRoutineDay(routine?.[day]);
           return (
             <Card key={day} className="rounded-2xl border shadow-none">
@@ -1727,7 +1731,11 @@ export default function LifeResetTrackerApp() {
                           <CardTitle className="text-base">Weekly Routine</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          {currentWeekDates.map((dateObj) => {
+                          {(() => {
+                            const todayIdx = currentWeekDates.findIndex(d => getTodayKey(d) === currentDateKey);
+                            const start = todayIdx >= 0 ? todayIdx : 0;
+                            return [...currentWeekDates.slice(start), ...currentWeekDates.slice(0, start)];
+                          })().map((dateObj) => {
                             const dayName = dateObj.toLocaleDateString([], { weekday: 'long' });
                             const shortDate = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
                             const routine = normalizeRoutineDay(weeklyRoutine[dayName]);
@@ -2043,7 +2051,7 @@ export default function LifeResetTrackerApp() {
                   </CollapsibleSection>
 
                   <CollapsibleSection title="Weekly Routine">
-                    <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} />
+                    <WeeklyRoutineEditor routine={weeklyRoutine} setRoutine={setWeeklyRoutine} todayDayName={parseKey(currentDateKey).toLocaleDateString([], { weekday: 'long' })} />
                   </CollapsibleSection>
 
                   <CollapsibleSection title="Goal Countdown & Outcomes">
