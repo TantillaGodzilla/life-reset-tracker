@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase-client';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   CalendarDays,
@@ -26,6 +27,9 @@ import {
   Trash2,
   FolderPlus,
   ChevronDown,
+  Cloud,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'life-reset-tracker-v11';
@@ -928,6 +932,42 @@ const defaultNotifications = {
   },
 };
 
+const createDefaultData = () => ({
+  daily: {},
+  weekly: {},
+  weeklyDayPlans: {},
+  reflections: {},
+  dailyTemplate: defaultDailyTemplate,
+  weeklyTemplate: defaultWeeklyTemplate,
+  notes: '',
+  metricsByDate: {},
+  targets: defaultTargets,
+  metricLabels: defaultMetricLabels,
+  countdown: defaultCountdown,
+  weeklyRoutine: defaultWeeklyRoutine,
+  countdownOutcomes: seededOutcomes,
+  notifications: defaultNotifications,
+  blockAlarms: { daily: {}, weekly: {} },
+});
+
+const normalizeTrackerData = (parsed = {}) => ({
+  daily: parsed.daily || {},
+  weekly: parsed.weekly || {},
+  weeklyDayPlans: parsed.weeklyDayPlans || {},
+  reflections: parsed.reflections || {},
+  dailyTemplate: parsed.dailyTemplate || defaultDailyTemplate,
+  weeklyTemplate: parsed.weeklyTemplate || defaultWeeklyTemplate,
+  notes: parsed.notes || '',
+  metricsByDate: parsed.metricsByDate || {},
+  targets: { ...defaultTargets, ...(parsed.targets || {}) },
+  metricLabels: { ...defaultMetricLabels, ...(parsed.metricLabels || {}) },
+  countdown: { ...defaultCountdown, ...(parsed.countdown || {}) },
+  weeklyRoutine: { ...defaultWeeklyRoutine, ...(parsed.weeklyRoutine || {}) },
+  countdownOutcomes: Array.isArray(parsed.countdownOutcomes) ? parsed.countdownOutcomes.map(normalizeOutcome) : seededOutcomes,
+  notifications: { ...defaultNotifications, ...(parsed.notifications || {}), alarms: { ...defaultNotifications.alarms, ...(parsed.notifications?.alarms || {}) } },
+  blockAlarms: { daily: {}, weekly: {}, ...(parsed.blockAlarms || {}) },
+});
+
 const playSound = (type) => {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1182,6 +1222,13 @@ export default function LifeResetTrackerApp() {
   const [selectedDateKey, setSelectedDateKey] = useState(getTodayKey());
   const [archiveDateKey, setArchiveDateKey] = useState(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authStatus, setAuthStatus] = useState('');
+  const [syncStatus, setSyncStatus] = useState(isSupabaseConfigured ? 'Local demo mode' : 'Local demo mode - Supabase not configured');
+  const cloudReadyRef = useRef(false);
+  const lastCloudSaveRef = useRef('');
+  const userId = session?.user?.id;
 
   useEffect(() => {
     const seen = window.localStorage.getItem('life-tracker-tutorial-seen');
@@ -1297,46 +1344,16 @@ export default function LifeResetTrackerApp() {
 
   const [data, setData] = useState(() => {
     if (typeof window === 'undefined') {
-      return {
-        daily: {}, weekly: {}, weeklyDayPlans: {}, reflections: {},
-        dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate,
-        notes: '', metricsByDate: {}, targets: defaultTargets, metricLabels: defaultMetricLabels,
-        countdown: defaultCountdown, weeklyRoutine: defaultWeeklyRoutine,
-        countdownOutcomes: seededOutcomes,
-        notifications: defaultNotifications, blockAlarms: { daily: {}, weekly: {} },
-      };
+      return createDefaultData();
     }
 
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (!saved) {
-      return {
-        daily: {}, weekly: {}, weeklyDayPlans: {}, reflections: {},
-        dailyTemplate: defaultDailyTemplate, weeklyTemplate: defaultWeeklyTemplate,
-        notes: '', metricsByDate: {}, targets: defaultTargets, metricLabels: defaultMetricLabels,
-        countdown: defaultCountdown, weeklyRoutine: defaultWeeklyRoutine,
-        countdownOutcomes: seededOutcomes,
-        notifications: defaultNotifications, blockAlarms: { daily: {}, weekly: {} },
-      };
+      return createDefaultData();
     }
 
     const parsed = JSON.parse(saved);
-    return {
-      daily: parsed.daily || {},
-      weekly: parsed.weekly || {},
-      weeklyDayPlans: parsed.weeklyDayPlans || {},
-      reflections: parsed.reflections || {},
-      dailyTemplate: parsed.dailyTemplate || defaultDailyTemplate,
-      weeklyTemplate: parsed.weeklyTemplate || defaultWeeklyTemplate,
-      notes: parsed.notes || '',
-      metricsByDate: parsed.metricsByDate || {},
-      targets: { ...defaultTargets, ...(parsed.targets || {}) },
-      metricLabels: { ...defaultMetricLabels, ...(parsed.metricLabels || {}) },
-      countdown: { ...defaultCountdown, ...(parsed.countdown || {}) },
-      weeklyRoutine: { ...defaultWeeklyRoutine, ...(parsed.weeklyRoutine || {}) },
-      countdownOutcomes: Array.isArray(parsed.countdownOutcomes) ? parsed.countdownOutcomes.map(normalizeOutcome) : seededOutcomes,
-      notifications: { ...defaultNotifications, ...(parsed.notifications || {}), alarms: { ...defaultNotifications.alarms, ...(parsed.notifications?.alarms || {}) } },
-      blockAlarms: { daily: {}, weekly: {}, ...(parsed.blockAlarms || {}) },
-    };
+    return normalizeTrackerData(parsed);
   });
 
   useEffect(() => {
@@ -1345,6 +1362,92 @@ export default function LifeResetTrackerApp() {
 
   const dataRef = useRef(data);
   useEffect(() => { dataRef.current = data; }, [data]);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+
+    supabase.auth.getSession().then(({ data: authData }) => {
+      setSession(authData.session);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !userId) {
+      cloudReadyRef.current = false;
+      setSyncStatus(isSupabaseConfigured ? 'Local demo mode' : 'Local demo mode - Supabase not configured');
+      return;
+    }
+
+    let cancelled = false;
+    const loadSnapshot = async () => {
+      setSyncStatus('Loading cloud data...');
+      const { data: snapshot, error } = await supabase
+        .from('tracker_snapshots')
+        .select('data, updated_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        setSyncStatus(`Cloud load failed: ${error.message}`);
+        return;
+      }
+
+      if (snapshot?.data) {
+        const normalized = normalizeTrackerData(snapshot.data);
+        lastCloudSaveRef.current = JSON.stringify(normalized);
+        setData(normalized);
+        setSyncStatus('Cloud sync active');
+      } else {
+        lastCloudSaveRef.current = JSON.stringify(dataRef.current);
+        const { error: insertError } = await supabase.from('tracker_snapshots').insert({
+          user_id: userId,
+          data: dataRef.current,
+        });
+        setSyncStatus(insertError ? `Cloud setup failed: ${insertError.message}` : 'Cloud sync active');
+      }
+
+      cloudReadyRef.current = true;
+    };
+
+    loadSnapshot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!supabase || !userId || !cloudReadyRef.current) return undefined;
+
+    const serialized = JSON.stringify(data);
+    if (serialized === lastCloudSaveRef.current) return undefined;
+
+    setSyncStatus('Saving...');
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase.from('tracker_snapshots').upsert({
+        user_id: userId,
+        data,
+      });
+
+      if (error) {
+        setSyncStatus(`Cloud save failed: ${error.message}`);
+        return;
+      }
+
+      lastCloudSaveRef.current = serialized;
+      setSyncStatus('Cloud sync active');
+    }, 900);
+
+    return () => window.clearTimeout(timeout);
+  }, [data, userId]);
 
   useEffect(() => {
     const checkDateChange = () => {
@@ -1672,6 +1775,47 @@ export default function LifeResetTrackerApp() {
     return cell >= start && cell <= end;
   };
 
+  const signInWithEmail = async (event) => {
+    event.preventDefault();
+    if (!supabase || !authEmail.trim()) return;
+
+    setAuthStatus('Sending sign-in link...');
+    const { error } = await supabase.auth.signInWithOtp({
+      email: authEmail.trim(),
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    });
+
+    setAuthStatus(error ? error.message : 'Check your email for the sign-in link.');
+  };
+
+  const signOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setSession(null);
+    setSyncStatus('Local demo mode');
+  };
+
+  const importDeviceDataToCloud = async () => {
+    if (!supabase || !session?.user) return;
+
+    setSyncStatus('Importing this device...');
+    const { error } = await supabase.from('tracker_snapshots').upsert({
+      user_id: session.user.id,
+      data,
+    });
+
+    if (error) {
+      setSyncStatus(`Import failed: ${error.message}`);
+      return;
+    }
+
+    lastCloudSaveRef.current = JSON.stringify(data);
+    cloudReadyRef.current = true;
+    setSyncStatus('Cloud sync active');
+  };
+
   return (
     <>
     {showTutorial && <SpotlightTour onClose={closeTutorial} setActiveTab={setActiveTab} />}
@@ -1692,6 +1836,43 @@ export default function LifeResetTrackerApp() {
               )}
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white/70 p-3">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      <Cloud className="h-4 w-4" />
+                      {session?.user ? 'Private cloud sync' : 'Public local demo'}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{syncStatus}</p>
+                  </div>
+
+                  {session?.user ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={importDeviceDataToCloud}>
+                        Import this device
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={signOut}>
+                        <LogOut className="mr-2 h-4 w-4" /> Sign out
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={signInWithEmail} className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                      <Input
+                        type="email"
+                        value={authEmail}
+                        onChange={(event) => setAuthEmail(event.target.value)}
+                        placeholder="Email for private sync"
+                        disabled={!isSupabaseConfigured}
+                        className="h-9 min-w-0 rounded-xl sm:w-56"
+                      />
+                      <Button type="submit" size="sm" className="rounded-xl" disabled={!isSupabaseConfigured || !authEmail.trim()}>
+                        <LogIn className="mr-2 h-4 w-4" /> Email link
+                      </Button>
+                    </form>
+                  )}
+                </div>
+                {authStatus ? <p className="mt-2 text-xs text-slate-500">{authStatus}</p> : null}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Badge className="rounded-full px-3 py-1">Today: {formatLongDate(currentDateKey)}</Badge>
                 <Badge className="rounded-full px-3 py-1">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Badge>
@@ -2478,4 +2659,3 @@ export default function LifeResetTrackerApp() {
     </>
   );
 }
-
