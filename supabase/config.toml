@@ -71,8 +71,6 @@ enable_signup = false
 enable_confirmations = false
 template = "Your code is {{ .Code }}"
 max_frequency = "5s"
-otp_expiry = 6000
-otp_length = 6
 
 [edge_runtime]
 enabled = true
