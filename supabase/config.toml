@@ -3,6 +3,7 @@ project_id = "life-reset-tracker"
 [api]
 enabled = true
 port = 54331
+external_url = "https://seth-milo-precision-7520.taile127dd.ts.net:10000"
 schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
@@ -45,7 +46,7 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-site_url = "http://127.0.0.1:3001"
+site_url = "https://life-reset-tracker-phi.vercel.app"
 additional_redirect_urls = [
   "http://127.0.0.1:3001",
   "http://localhost:3001",
@@ -68,6 +69,15 @@ secure_password_change = false
 max_frequency = "1s"
 otp_length = 6
 otp_expiry = 3600
+
+[auth.email.smtp]
+enabled = true
+host = "smtp.zoho.com"
+port = 587
+user = "ops@mi-leads.com"
+pass = "env(LIFE_TRACKER_SMTP_PASS)"
+admin_email = "ops@mi-leads.com"
+sender_name = "Life Tracker"
 
 [auth.sms]
 enable_signup = false
