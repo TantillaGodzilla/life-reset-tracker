@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Life Reset Tracker compass icon">
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="162" fill="none" stroke="#e2e8f0" stroke-width="26"/>
+  <circle cx="256" cy="256" r="18" fill="#e2e8f0"/>
+  <path d="M286 226 350 134 258 198 226 286 318 258Z" fill="#38bdf8"/>
+  <path d="M226 286 162 378 254 314 286 226 194 254Z" fill="#f8fafc"/>
+  <path d="M256 85v39M256 388v39M85 256h39M388 256h39" stroke="#94a3b8" stroke-width="20" stroke-linecap="round"/>
+</svg>

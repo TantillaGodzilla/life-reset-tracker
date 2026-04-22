@@ -1025,7 +1025,7 @@ const playSound = (type) => {
 const fireAlarm = (label, body, soundEnabled, soundType) => {
   if (soundEnabled && soundType !== 'silent') playSound(soundType);
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    new Notification(label, { body, icon: '/favicon.ico' });
+    new Notification(label, { body, icon: '/app-icon.svg' });
   }
 };
 
