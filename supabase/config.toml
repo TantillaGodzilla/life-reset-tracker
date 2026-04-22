@@ -45,12 +45,12 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-site_url = "http://127.0.0.1:3000"
+site_url = "http://127.0.0.1:3001"
 additional_redirect_urls = [
-  "http://127.0.0.1:3000",
-  "http://localhost:3000",
-  "http://192.168.1.240:3000",
-  "http://100.126.225.50:3000",
+  "http://127.0.0.1:3001",
+  "http://localhost:3001",
+  "http://192.168.1.240:3001",
+  "http://100.126.225.50:3001",
 ]
 jwt_expiry = 3600
 enable_signup = true
