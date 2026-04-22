@@ -51,6 +51,9 @@ additional_redirect_urls = [
   "http://localhost:3001",
   "http://192.168.1.240:3001",
   "http://100.126.225.50:3001",
+  "https://life-reset-tracker-phi.vercel.app",
+  "https://life-reset-tracker-tantillagodzillas-projects.vercel.app",
+  "https://life-reset-tracker-git-main-tantillagodzillas-projects.vercel.app",
 ]
 jwt_expiry = 3600
 enable_signup = true
